@@ -1,0 +1,13 @@
+version: "3.9"
+
+# Use this for backend-only dev (run frontend with `npm run dev` locally)
+# docker compose -f docker-compose.yml -f docker-compose.dev.yml up db api
+
+services:
+  api:
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      CORS_ORIGINS: http://localhost:3000,http://localhost:5173
+
+  frontend:
+    profiles: ["disabled"]   # skip building frontend image
