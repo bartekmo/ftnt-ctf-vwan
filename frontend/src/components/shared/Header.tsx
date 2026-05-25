@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { LogOut, Shield, LayoutDashboard, Trophy, Users } from 'lucide-react'
+import { LogOut, Shield, LayoutDashboard, Trophy, Users, Server } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 
 export default function Header() {
@@ -61,6 +61,9 @@ export default function Header() {
         {user && (
           <nav style={{ display: 'flex', gap: '0.25rem', marginLeft: '1rem', flex: 1 }}>
             <NavLink to="/challenges" label="Challenges" icon={<LayoutDashboard size={15} />} active={isActive('/challenges')} />
+            {user.team_id && (
+              <NavLink to="/environment" label="My Environment" icon={<Server size={15} />} active={isActive('/environment')} />
+            )}
             <NavLink to="/scoreboard" label="Scoreboard" icon={<Trophy size={15} />} active={isActive('/scoreboard')} />
             {user.role === 'trainer' && (
               <NavLink to="/trainer" label="Admin" icon={<Users size={15} />} active={isActive('/trainer')} />
