@@ -94,6 +94,7 @@ class TeamOut(BaseModel):
     id: int
     name: str
     join_code: str
+    env_id: Optional[str] = None
     member_count: int = 0
     score: int = 0
     created_at: datetime
@@ -103,6 +104,52 @@ class TeamOut(BaseModel):
 
 class TeamDetailOut(TeamOut):
     members: List[UserOut] = []
+
+
+class TeamEnvironmentOut(BaseModel):
+    """All data an attendee needs to work with their lab environment."""
+    team_id: int
+    team_name: str
+    env_id: str
+
+    # Azure credentials
+    azure_username: str
+    azure_password: str
+
+    # BGP ASNs
+    fgt_asn: int
+    azure_asn: int
+
+    # Networking
+    overlay_network: str
+    sdwan_healthcheck_range: str
+
+    # Hub NVAs
+    fgt_nva1_name: str
+    fgt_nva1_pip: str
+    fgt_nva2_name: str
+    fgt_nva2_pip: str
+
+    # FortiFlex tokens
+    flex_token1: str
+    flex_token2: str
+
+    # Spoke VNet
+    spoke_cidr: str
+    spoke_server_private: str
+    spoke_server_public: str
+    spoke_peered: bool
+
+    # Branch site
+    branch_cidr: str
+    branch_fgt_pip: str
+    branch_win_pip: str
+
+    # FortiManager (shared)
+    fmg_serial: str
+    fmg_ip: str
+
+    model_config = {"from_attributes": True}
 
 
 class JoinTeamRequest(BaseModel):
