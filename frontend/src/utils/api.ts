@@ -41,6 +41,7 @@ export interface Team {
   id: number
   name: string
   join_code: string
+  env_id: string | null
   member_count: number
   score: number
   created_at: string
@@ -48,6 +49,33 @@ export interface Team {
 
 export interface TeamDetail extends Team {
   members: User[]
+}
+
+export interface TeamEnvironment {
+  team_id: number
+  team_name: string
+  env_id: string
+  azure_username: string
+  azure_password: string
+  fgt_asn: number
+  azure_asn: number
+  overlay_network: string
+  sdwan_healthcheck_range: string
+  fgt_nva1_name: string
+  fgt_nva1_pip: string
+  fgt_nva2_name: string
+  fgt_nva2_pip: string
+  flex_token1: string
+  flex_token2: string
+  spoke_cidr: string
+  spoke_server_private: string
+  spoke_server_public: string
+  spoke_peered: boolean
+  branch_cidr: string
+  branch_fgt_pip: string
+  branch_win_pip: string
+  fmg_serial: string
+  fmg_ip: string
 }
 
 export interface Challenge {
@@ -121,6 +149,8 @@ export const teamsApi = {
   join: (join_code: string) => api.post<Team>('/teams/join', { join_code }),
   leave: () => api.post('/teams/leave'),
   get: (id: number) => api.get<TeamDetail>(`/teams/${id}`),
+  myEnvironment: () => api.get<TeamEnvironment>('/teams/my/environment'),
+  getEnvironment: (id: number) => api.get<TeamEnvironment>(`/teams/${id}/environment`),
   shuffle: () => api.post('/teams/admin/shuffle'),
   moveUser: (user_id: number, team_id: number | null) =>
     api.put('/teams/admin/move', { user_id, team_id }),
