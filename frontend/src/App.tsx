@@ -5,6 +5,7 @@ import AuthPage from '@/pages/AuthPage'
 import TeamLobbyPage from '@/pages/TeamLobbyPage'
 import ChallengesPage from '@/pages/ChallengesPage'
 import ChallengeDetailPage from '@/pages/ChallengeDetailPage'
+import EnvironmentPage from '@/pages/EnvironmentPage'
 import ScoreboardPage from '@/pages/ScoreboardPage'
 import TrainerPage from '@/pages/TrainerPage'
 
@@ -38,6 +39,9 @@ export default function App() {
           } />
           <Route path="/challenges/:id" element={
             <RequireAuth><ChallengeDetailPage /></RequireAuth>
+          } />
+          <Route path="/environment" element={
+            <RequireAuth><EnvironmentPage /></RequireAuth>
           } />
           <Route path="/trainer" element={
             <RequireTrainer><TrainerPage /></RequireTrainer>
