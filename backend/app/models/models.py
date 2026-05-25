@@ -28,10 +28,10 @@ class UserRole(str, enum.Enum):
 
 
 class CTFStatus(str, enum.Enum):
-    pending = "pending"      # not started yet
-    running = "running"      # active
-    paused = "paused"        # trainer paused
-    finished = "finished"    # ended
+    pending = "pending"
+    running = "running"
+    paused = "paused"
+    finished = "finished"
 
 
 class ChallengeCategory(str, enum.Enum):
@@ -44,7 +44,7 @@ class ChallengeCategory(str, enum.Enum):
 
 
 # ---------------------------------------------------------------------------
-# CTF Event (singleton-ish row controlling global state)
+# CTF Event
 # ---------------------------------------------------------------------------
 
 class CTFEvent(Base):
@@ -69,6 +69,9 @@ class Team(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(100), unique=True, index=True)
     join_code: Mapped[str] = mapped_column(String(16), unique=True, index=True)
+    # Two-digit environment identifier assigned at creation time (01-99).
+    # Unique so each team maps to a distinct Azure lab environment.
+    env_id: Mapped[Optional[int]] = mapped_column(Integer, unique=True, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     members: Mapped[List["User"]] = relationship("User", back_populates="team")
@@ -78,6 +81,11 @@ class Team(Base):
     @property
     def score(self) -> int:
         return sum(s.points_awarded for s in self.solves) - sum(h.points_cost for h in self.hint_uses)
+
+    @property
+    def env_id_str(self) -> Optional[str]:
+        """Zero-padded 2-digit string, e.g. 1 -> '01'."""
+        return f"{self.env_id:02d}" if self.env_id is not None else None
 
 
 # ---------------------------------------------------------------------------
@@ -143,7 +151,7 @@ class HintUse(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     hint_id: Mapped[int] = mapped_column(ForeignKey("hints.id", ondelete="CASCADE"))
     team_id: Mapped[int] = mapped_column(ForeignKey("teams.id", ondelete="CASCADE"))
-    points_cost: Mapped[int] = mapped_column(Integer)   # snapshot at time of use
+    points_cost: Mapped[int] = mapped_column(Integer)
     used_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     hint: Mapped["Hint"] = relationship("Hint", back_populates="uses")
