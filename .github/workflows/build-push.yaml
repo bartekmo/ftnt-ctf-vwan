@@ -7,17 +7,21 @@ on:
       - "backend/**"
       - "frontend/**"
       - ".github/workflows/build-push.yml"
-  workflow_dispatch:   # allow manual trigger from GitHub UI
+  workflow_dispatch:
+
+# Required for OIDC token request
+permissions:
+  id-token: write   # request JWT from GitHub's OIDC provider
+  contents: read    # checkout the repo
 
 env:
-  REGISTRY: ${{ secrets.ACR_LOGIN_SERVER }}   # e.g. xperts26ctf.azurecr.io
+  REGISTRY: ${{ vars.ACR_LOGIN_SERVER }}   # e.g. xperts26ctf.azurecr.io (non-secret var)
 
 jobs:
   # ── Backend ────────────────────────────────────────────────────────────────
   build-backend:
     name: Build backend
     runs-on: ubuntu-latest
-    # Only rebuild when backend files changed
     outputs:
       changed: ${{ steps.filter.outputs.backend }}
 
@@ -33,13 +37,17 @@ jobs:
               - 'backend/**'
               - '.github/workflows/build-push.yml'
 
-      - name: Log in to ACR
+      - name: Azure login (OIDC)
         if: steps.filter.outputs.backend == 'true' || github.event_name == 'workflow_dispatch'
-        uses: docker/login-action@v3
+        uses: azure/login@v2
         with:
-          registry: ${{ secrets.ACR_LOGIN_SERVER }}
-          username: ${{ secrets.ACR_USERNAME }}
-          password: ${{ secrets.ACR_PASSWORD }}
+          client-id:       ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id:       ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Log in to ACR via OIDC token
+        if: steps.filter.outputs.backend == 'true' || github.event_name == 'workflow_dispatch'
+        run: az acr login --name ${{ vars.ACR_LOGIN_SERVER }}
 
       - name: Set up Docker Buildx
         if: steps.filter.outputs.backend == 'true' || github.event_name == 'workflow_dispatch'
@@ -77,13 +85,17 @@ jobs:
               - 'frontend/**'
               - '.github/workflows/build-push.yml'
 
-      - name: Log in to ACR
+      - name: Azure login (OIDC)
         if: steps.filter.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch'
-        uses: docker/login-action@v3
+        uses: azure/login@v2
         with:
-          registry: ${{ secrets.ACR_LOGIN_SERVER }}
-          username: ${{ secrets.ACR_USERNAME }}
-          password: ${{ secrets.ACR_PASSWORD }}
+          client-id:       ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id:       ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Log in to ACR via OIDC token
+        if: steps.filter.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch'
+        run: az acr login --name ${{ vars.ACR_LOGIN_SERVER }}
 
       - name: Set up Docker Buildx
         if: steps.filter.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch'
@@ -104,37 +116,44 @@ jobs:
 
   # ── Deploy ─────────────────────────────────────────────────────────────────
   deploy:
-    name: Restart Azure Container Instances
+    name: Update Container Apps
     runs-on: ubuntu-latest
     needs: [build-backend, build-frontend]
-    # Only run if at least one image was actually rebuilt
     if: |
       needs.build-backend.outputs.changed == 'true' ||
       needs.build-frontend.outputs.changed == 'true' ||
       github.event_name == 'workflow_dispatch'
 
     steps:
-      - name: Azure login
+      - name: Azure login (OIDC)
         uses: azure/login@v2
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          client-id:       ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id:       ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Restart API container
+      # Container Apps update is done by pointing to the new :latest image.
+      # Container Apps pulls :latest from ACR using its managed identity —
+      # no registry credentials needed at deploy time either.
+
+      - name: Update API container app
         if: needs.build-backend.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
         uses: azure/cli@v2
         with:
           azcliversion: latest
           inlineScript: |
-            az container restart \
-              --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-              --name ctf-api
+            az containerapp update \
+              --resource-group ${{ vars.AZURE_RESOURCE_GROUP }} \
+              --name ctf-api \
+              --image ${{ env.REGISTRY }}/ctf-api:${{ github.sha }}
 
-      - name: Restart frontend container
+      - name: Update frontend container app
         if: needs.build-frontend.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
         uses: azure/cli@v2
         with:
           azcliversion: latest
           inlineScript: |
-            az container restart \
-              --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-              --name ctf-frontend
+            az containerapp update \
+              --resource-group ${{ vars.AZURE_RESOURCE_GROUP }} \
+              --name ctf-frontend \
+              --image ${{ env.REGISTRY }}/ctf-frontend:${{ github.sha }}
