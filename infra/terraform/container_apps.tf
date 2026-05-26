@@ -123,6 +123,13 @@ resource "azurerm_container_app" "frontend" {
       image  = var.frontend_image
       cpu    = 0.5
       memory = "1Gi"
+
+      # API_URL is substituted into nginx.conf at container start via envsubst.
+      # Container Apps API is served over HTTPS on its default domain.
+      env {
+        name  = "API_URL"
+        value = "https://${azurerm_container_app.api.ingress[0].fqdn}"
+      }
     }
   }
 
