@@ -1,0 +1,25 @@
+# Copy this file to terraform.tfvars and fill in the values.
+# terraform.tfvars is gitignored — never commit real passwords.
+
+resource_group_name = "rg-xperts26-ctf"
+location            = "westeurope"
+
+# ACR — must be globally unique, lowercase, alphanumeric only
+acr_name = "xperts26ctf"
+
+# PostgreSQL
+db_server_name    = "ctf-pg-xperts26"
+db_admin_user     = "ctfadmin"
+db_admin_password = "CHANGE_ME_strong_password_here"
+db_name           = "ctfdb"
+
+# Container images — update after first manual push to ACR
+api_image      = "xperts26ctf.azurecr.io/ctf-api:latest"
+frontend_image = "xperts26ctf.azurecr.io/ctf-frontend:latest"
+
+# JWT secret key — generate with: openssl rand -hex 32
+api_secret_key = "CHANGE_ME_run_openssl_rand_hex_32"
+
+# GitHub
+github_org  = "bartekmo"
+github_repo = "ftnt-ctf-vwan"
