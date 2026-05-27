@@ -16,7 +16,7 @@
 # ── App registration ──────────────────────────────────────────────────────
 
 resource "azuread_application" "github_actions" {
-  display_name = "github-ctf-deploy"
+  display_name = "vwanlab2-github-deploy"
 }
 
 resource "azuread_service_principal" "github_actions" {
@@ -28,7 +28,7 @@ resource "azuread_service_principal" "github_actions" {
 # Trusts workflow runs triggered by a push to main
 resource "azuread_application_federated_identity_credential" "github_push_main" {
   application_id = azuread_application.github_actions.id
-  display_name   = "github-push-main"
+  display_name   = "vwanlab2-github-push-main"
   issuer         = "https://token.actions.githubusercontent.com"
   subject        = "repo:${var.github_org}/${var.github_repo}:ref:refs/heads/main"
   audiences      = ["api://AzureADTokenExchange"]
@@ -38,7 +38,7 @@ resource "azuread_application_federated_identity_credential" "github_push_main" 
 # Trusts workflow_dispatch runs on main (manual trigger from GitHub UI)
 resource "azuread_application_federated_identity_credential" "github_workflow_dispatch" {
   application_id = azuread_application.github_actions.id
-  display_name   = "github-workflow-dispatch"
+  display_name   = "vwanlab2-github-workflow-dispatch"
   issuer         = "https://token.actions.githubusercontent.com"
   subject        = "repo:${var.github_org}/${var.github_repo}:workflow_dispatch"
   audiences      = ["api://AzureADTokenExchange"]
@@ -49,7 +49,7 @@ resource "azuread_application_federated_identity_credential" "github_workflow_di
 
 # Contributor on the resource group — lets Actions call az containerapp update
 resource "azurerm_role_assignment" "github_actions_contributor" {
-  scope                = azurerm_resource_group.ctf.id
+  scope                = data.azurerm_resource_group.ctf.id
   role_definition_name = "Contributor"
   principal_id         = azuread_service_principal.github_actions.object_id
 }

@@ -3,24 +3,23 @@
 
 resource "azurerm_postgresql_flexible_server" "ctf" {
   name                   = var.db_server_name
-  resource_group_name    = azurerm_resource_group.ctf.name
-  location               = azurerm_resource_group.ctf.location
+  resource_group_name    = data.azurerm_resource_group.ctf.name
+  location               = data.azurerm_resource_group.ctf.location
   version                = "16"
   administrator_login    = var.db_admin_user
   administrator_password = var.db_admin_password
   sku_name               = "${var.db_sku}"
   storage_mb             = 32768
-  zone                   = "1"
-
-  # Burstable tier — cost-effective for short-duration, low-concurrency workloads
-  tier = "Burstable"
+  #zone                   = "1"
 
   backup_retention_days        = 7
   geo_redundant_backup_enabled = false
 
-  # High availability not needed for an ephemeral workshop event
-  high_availability {
-    mode = "Disabled"
+  lifecycle {
+    ignore_changes = [
+      # Ignore changes to admin password after initial creation
+      zone
+    ]
   }
 }
 

@@ -4,8 +4,8 @@
 
 resource "azurerm_container_registry" "ctf" {
   name                = var.acr_name
-  resource_group_name = azurerm_resource_group.ctf.name
-  location            = azurerm_resource_group.ctf.location
+  resource_group_name = data.azurerm_resource_group.ctf.name
+  location            = data.azurerm_resource_group.ctf.location
   sku                 = "Basic"
-  admin_enabled       = false
+  admin_enabled       = true
 }

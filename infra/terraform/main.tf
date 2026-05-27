@@ -37,7 +37,6 @@ data "azurerm_client_config" "current" {}
 
 # ── Resource group ────────────────────────────────────────────────────────
 
-resource "azurerm_resource_group" "ctf" {
+data "azurerm_resource_group" "ctf" {
   name     = var.resource_group_name
-  location = var.location
 }

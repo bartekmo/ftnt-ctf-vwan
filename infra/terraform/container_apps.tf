@@ -2,8 +2,8 @@
 
 resource "azurerm_log_analytics_workspace" "ctf" {
   name                = "ctf-logs"
-  resource_group_name = azurerm_resource_group.ctf.name
-  location            = azurerm_resource_group.ctf.location
+  resource_group_name = data.azurerm_resource_group.ctf.name
+  location            = data.azurerm_resource_group.ctf.location
   sku                 = "PerGB2018"
   retention_in_days   = 30
 }
@@ -12,8 +12,8 @@ resource "azurerm_log_analytics_workspace" "ctf" {
 
 resource "azurerm_container_app_environment" "ctf" {
   name                       = "ctf-env"
-  resource_group_name        = azurerm_resource_group.ctf.name
-  location                   = azurerm_resource_group.ctf.location
+  resource_group_name        = data.azurerm_resource_group.ctf.name
+  location                   = data.azurerm_resource_group.ctf.location
   log_analytics_workspace_id = azurerm_log_analytics_workspace.ctf.id
 }
 
@@ -21,7 +21,7 @@ resource "azurerm_container_app_environment" "ctf" {
 
 resource "azurerm_container_app" "api" {
   name                         = "ctf-api"
-  resource_group_name          = azurerm_resource_group.ctf.name
+  resource_group_name          = data.azurerm_resource_group.ctf.name
   container_app_environment_id = azurerm_container_app_environment.ctf.id
   revision_mode                = "Single"
 
@@ -64,7 +64,7 @@ resource "azurerm_container_app" "api" {
       # CORS is set after frontend FQDN is known — see outputs.tf for the value
       env {
         name  = "CORS_ORIGINS"
-        value = "https://${azurerm_container_app.frontend.ingress[0].fqdn}"
+        value = "https://ctf-frontend.${azurerm_container_app_environment.ctf.default_domain}" #"https://${azurerm_container_app.frontend.ingress[0].fqdn}"
       }
       env {
         name        = "DATABASE_URL"
@@ -73,6 +73,7 @@ resource "azurerm_container_app" "api" {
       env {
         name        = "SECRET_KEY"
         secret_name = "secret-key"
+        
       }
     }
   }
@@ -101,7 +102,7 @@ resource "azurerm_role_assignment" "api_acr_pull" {
 
 resource "azurerm_container_app" "frontend" {
   name                         = "ctf-frontend"
-  resource_group_name          = azurerm_resource_group.ctf.name
+  resource_group_name          = data.azurerm_resource_group.ctf.name
   container_app_environment_id = azurerm_container_app_environment.ctf.id
   revision_mode                = "Single"
 
@@ -123,6 +124,11 @@ resource "azurerm_container_app" "frontend" {
       image  = var.frontend_image
       cpu    = 0.5
       memory = "1Gi"
+
+      env {
+        name  = "API_URL"
+        value = "https://ctf-api.${azurerm_container_app_environment.ctf.default_domain}"
+      }
     }
   }
 
