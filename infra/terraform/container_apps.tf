@@ -79,7 +79,7 @@ resource "azurerm_container_app" "api" {
   }
 
   ingress {
-    external_enabled = true
+    external_enabled = false
     target_port      = 8000
     traffic_weight {
       percentage      = 100
@@ -127,7 +127,7 @@ resource "azurerm_container_app" "frontend" {
 
       env {
         name  = "API_URL"
-        value = "https://ctf-api.${azurerm_container_app_environment.ctf.default_domain}"
+        value = "https://ctf-api.internal.${azurerm_container_app_environment.ctf.default_domain}"
       }
     }
   }
