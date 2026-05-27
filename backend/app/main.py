@@ -6,7 +6,7 @@ from app.core.config import settings
 from app.db.session import engine
 from app.db.session import Base
 
-# Import all models so Alembic/Base.metadata picks them up
+# Import all models so Base.metadata picks them up
 from app.models import models  # noqa
 
 from app.api.routes import auth, teams, challenges, scoreboard, users
@@ -14,10 +14,12 @@ from app.api.routes import auth, teams, challenges, scoreboard, users
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create tables on startup (dev mode). In production use alembic migrations.
-    if settings.ENVIRONMENT == "development":
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+    # create_all is idempotent — safe to run on every startup.
+    # It creates any tables that don't exist yet and leaves existing ones alone.
+    # This is appropriate for an ephemeral workshop platform; a long-lived
+    # production service would use Alembic migrations instead.
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     yield
     await engine.dispose()
 
