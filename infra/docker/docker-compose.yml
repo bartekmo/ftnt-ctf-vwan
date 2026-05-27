@@ -39,6 +39,10 @@ services:
     build:
       context: ../../frontend
       dockerfile: Dockerfile
+    environment:
+      # In Docker Compose, containers share a network and resolve by service name.
+      # nginx proxies to http (not https) on the internal network.
+      API_URL: http://api:8000
     ports:
       - "3000:80"
     depends_on:
