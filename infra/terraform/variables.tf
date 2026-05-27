@@ -47,7 +47,7 @@ variable "db_name" {
 variable "db_sku" {
   description = "PostgreSQL Flexible Server SKU."
   type        = string
-  default     = "Standard_B1ms"
+  default     = "B_Standard_B1ms"
 }
 
 # ── Container Apps ────────────────────────────────────────────────────────
