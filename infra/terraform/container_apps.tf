@@ -18,6 +18,9 @@ resource "azurerm_container_app_environment" "ctf" {
 }
 
 # ── API Container App ─────────────────────────────────────────────────────
+# Ingress is INTERNAL only — the API is not exposed to the public internet.
+# The frontend nginx proxies /api and /ws to http://ctf-api using ACA's
+# internal DNS. Traffic never leaves the Container Apps environment.
 
 resource "azurerm_container_app" "api" {
   name                         = "ctf-api"
@@ -25,19 +28,15 @@ resource "azurerm_container_app" "api" {
   container_app_environment_id = azurerm_container_app_environment.ctf.id
   revision_mode                = "Single"
 
-  # System-assigned managed identity — used to pull from ACR at runtime
   identity {
     type = "SystemAssigned"
   }
 
-  # Pull image from ACR using the managed identity (no stored registry creds)
   registry {
     server   = azurerm_container_registry.ctf.login_server
     identity = "system"
   }
 
-  # Sensitive values are stored as Container Apps secrets (encrypted at rest)
-  # and referenced by env vars — never passed as plain env vars
   secret {
     name  = "db-url"
     value = "postgresql+asyncpg://${var.db_admin_user}:${var.db_admin_password}@${azurerm_postgresql_flexible_server.ctf.fqdn}:5432/${var.db_name}"
@@ -61,10 +60,11 @@ resource "azurerm_container_app" "api" {
         name  = "ENVIRONMENT"
         value = "production"
       }
-      # CORS is set after frontend FQDN is known — see outputs.tf for the value
+      # CORS origin is the frontend's public FQDN — derived from the
+      # environment default domain which is known at plan time.
       env {
         name  = "CORS_ORIGINS"
-        value = "https://ctf-frontend.${azurerm_container_app_environment.ctf.default_domain}" #"https://${azurerm_container_app.frontend.ingress[0].fqdn}"
+        value = "https://ctf-frontend.${azurerm_container_app_environment.ctf.default_domain}"
       }
       env {
         name        = "DATABASE_URL"
@@ -73,25 +73,22 @@ resource "azurerm_container_app" "api" {
       env {
         name        = "SECRET_KEY"
         secret_name = "secret-key"
-        
       }
     }
   }
 
   ingress {
-    external_enabled = true
+    # Internal only — reachable as http://ctf-api from within the same
+    # ACA environment; not accessible from the public internet.
+    external_enabled = false
     target_port      = 8000
     traffic_weight {
       percentage      = 100
       latest_revision = true
     }
   }
-
-  # Depends on frontend so CORS FQDN is available; see note in outputs.tf
-  depends_on = [azurerm_container_app.frontend]
 }
 
-# Grant the API's managed identity AcrPull on the registry
 resource "azurerm_role_assignment" "api_acr_pull" {
   scope                = azurerm_container_registry.ctf.id
   role_definition_name = "AcrPull"
@@ -99,6 +96,7 @@ resource "azurerm_role_assignment" "api_acr_pull" {
 }
 
 # ── Frontend Container App ────────────────────────────────────────────────
+# Public-facing. nginx proxies /api and /ws to the API using ACA internal DNS.
 
 resource "azurerm_container_app" "frontend" {
   name                         = "ctf-frontend"
@@ -125,9 +123,11 @@ resource "azurerm_container_app" "frontend" {
       cpu    = 0.5
       memory = "1Gi"
 
+      # ACA internal DNS: http://<app-name> resolves within the same environment.
+      # envsubst in the container entrypoint substitutes this into nginx.conf.
       env {
         name  = "API_URL"
-        value = "https://ctf-api.${azurerm_container_app_environment.ctf.default_domain}"
+        value = "http://ctf-api"
       }
     }
   }
@@ -142,7 +142,6 @@ resource "azurerm_container_app" "frontend" {
   }
 }
 
-# Grant the frontend's managed identity AcrPull on the registry
 resource "azurerm_role_assignment" "frontend_acr_pull" {
   scope                = azurerm_container_registry.ctf.id
   role_definition_name = "AcrPull"

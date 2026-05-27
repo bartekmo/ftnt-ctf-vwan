@@ -7,14 +7,12 @@ RUN npm run build
 
 FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Copy config as a template — only $API_URL will be substituted at startup,
-# all other nginx $variables ($http_host, $remote_addr etc.) are preserved.
 COPY nginx.conf /etc/nginx/nginx.conf.template
-
 EXPOSE 80
 
-# Explicitly substitute ONLY $API_URL, leaving all nginx $variables intact.
-# Then exec nginx so it is PID 1 and receives signals correctly.
+# Substitute only $API_URL at startup — all other nginx $variables are untouched.
+# API_URL is injected as a runtime environment variable by the container platform:
+#   ACA:           API_URL=http://ctf-api  (internal DNS, same environment)
+#   Docker Compose: API_URL=http://api:8000 (Docker network)
 CMD ["/bin/sh", "-c", \
-     "envsubst '${API_URL}' < /etc/nginx/nginx.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+     "envsubst '$API_URL' < /etc/nginx/nginx.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
