@@ -127,7 +127,7 @@ resource "azurerm_container_app" "frontend" {
       # envsubst in the container entrypoint substitutes this into nginx.conf.
       env {
         name  = "API_URL"
-        value = "http://ctf-api"
+        value = "https://ctf-api"
       }
     }
   }
