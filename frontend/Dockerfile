@@ -10,9 +10,12 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/nginx.conf.template
 EXPOSE 80
 
-# Substitute only $API_URL at startup — all other nginx $variables are untouched.
-# API_URL is injected as a runtime environment variable by the container platform:
-#   ACA:           API_URL=http://ctf-api  (internal DNS, same environment)
-#   Docker Compose: API_URL=http://api:8000 (Docker network)
+# Substitute $API_URL and $API_HOST only — all other nginx $variables are preserved.
+# ACA sets:
+#   API_URL=https://ctf-api.internal.<env-domain>  (full internal FQDN with scheme)
+#   API_HOST=ctf-api.internal.<env-domain>          (just the hostname for Host header)
+# Docker Compose sets:
+#   API_URL=http://api:8000
+#   API_HOST=api
 CMD ["/bin/sh", "-c", \
-     "envsubst '$API_URL' < /etc/nginx/nginx.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+     "envsubst '$API_URL $API_HOST' < /etc/nginx/nginx.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]

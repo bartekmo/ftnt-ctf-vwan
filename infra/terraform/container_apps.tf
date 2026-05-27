@@ -125,9 +125,16 @@ resource "azurerm_container_app" "frontend" {
 
       # ACA internal DNS: http://<app-name> resolves within the same environment.
       # envsubst in the container entrypoint substitutes this into nginx.conf.
+      # Full internal FQDN required for ACA inter-app communication.
+      # Format: <app-name>.internal.<env-unique-id>.<region>.azurecontainerapps.io
+      # Traffic stays within the ACA environment and never hits the public internet.
       env {
         name  = "API_URL"
-        value = "https://ctf-api"
+        value = "https://ctf-api.internal.${azurerm_container_app_environment.ctf.default_domain}"
+      }
+      env {
+        name  = "API_HOST"
+        value = "ctf-api.internal.${azurerm_container_app_environment.ctf.default_domain}"
       }
     }
   }
