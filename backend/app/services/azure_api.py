@@ -7,7 +7,7 @@ Works in Azure Container Apps with system-assigned managed identity.
 For local development, set AZURE_SUBSCRIPTION_ID to empty string and
 the client will return empty/mock data rather than failing.
 """
-import json
+import asyncio
 import logging
 import time
 from typing import Optional
@@ -40,22 +40,51 @@ class AzureClient:
             data = resp.json()
             self._token = data["access_token"]
             self._token_expires = int(data["expires_on"])
+            logger.debug("ARM token refreshed, expires at %s", self._token_expires)
             return self._token
 
     async def get(self, path: str) -> dict:
-        """GET from ARM API. Returns empty dict on any error when subscription not configured."""
+        """
+        GET from ARM API.
+        - Returns {} silently when AZURE_SUBSCRIPTION_ID is not set (local dev).
+        - Logs the full URL and HTTP status on every non-2xx response so
+          misconfigured resource paths are immediately visible in the logs.
+        - Returns {} on error so callers always get a dict back.
+        """
         if not azure_settings.AZURE_SUBSCRIPTION_ID:
             logger.debug("AZURE_SUBSCRIPTION_ID not set — skipping ARM call for %s", path)
             return {}
+
         base = ARM_BASE.format(subscription_id=azure_settings.AZURE_SUBSCRIPTION_ID)
-        token = await self._get_token()
-        async with httpx.AsyncClient(timeout=4) as client:
-            resp = await client.get(
-                f"{base}{path}",
-                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
-            )
-            resp.raise_for_status()
-            return resp.json()
+        full_url = f"{base}{path}"
+
+        try:
+            token = await self._get_token()
+            async with httpx.AsyncClient(timeout=10) as client:
+                logger.debug("ARM GET %s", full_url)
+                resp = await client.get(
+                    full_url,
+                    headers={
+                        "Authorization": f"Bearer {token}",
+                        "Content-Type": "application/json",
+                    },
+                )
+                if resp.status_code != 200:
+                    logger.error(
+                        "ARM GET failed — URL: %s  status: %s  body: %s",
+                        full_url,
+                        resp.status_code,
+                        resp.text[:500],
+                    )
+                    return {}
+                return resp.json()
+
+        except httpx.TimeoutException:
+            logger.error("ARM GET timed out — URL: %s", full_url)
+            return {}
+        except Exception as exc:
+            logger.error("ARM GET error — URL: %s  error: %s", full_url, exc)
+            return {}
 
 
 # Singleton — reused across requests so the token cache is effective
@@ -96,57 +125,62 @@ async def get_nva_pips(hub_name: str) -> dict[str, str]:
 async def get_spoke_server(index: str) -> dict[str, Optional[str]]:
     """Return private and public IP of the spoke server VM for the given env index."""
     rg = f"{azure_settings.RG_PREFIX}{index}{azure_settings.RG_SUFFIX}"
-    pip_task = _client.get(
-        f"/resourceGroups/{rg}/providers/Microsoft.Network/publicIpAddresses"
-        f"/spoke{index}Srv-pip?api-version=2022-07-01"
-    )
-    nic_task = _client.get(
-        f"/resourceGroups/{rg}/providers/Microsoft.Network/networkInterfaces"
-        f"/spoke{index}Srv-nic1?api-version=2022-07-01"
-    )
-    import asyncio
-    pip_data, nic_data = await asyncio.gather(pip_task, nic_task, return_exceptions=True)
+    logger.info("get_spoke_server: index=%s rg=%s", index, rg)
 
-    public_ip = None
+    pip_data, nic_data = await asyncio.gather(
+        _client.get(
+            f"/resourceGroups/{rg}/providers/Microsoft.Network/publicIpAddresses"
+            f"/spoke{index}Srv-pip?api-version=2022-07-01"
+        ),
+        _client.get(
+            f"/resourceGroups/{rg}/providers/Microsoft.Network/networkInterfaces"
+            f"/spoke{index}Srv-nic1?api-version=2022-07-01"
+        ),
+    )
+
+    public_ip = pip_data.get("properties", {}).get("ipAddress") if pip_data else None
     private_ip = None
-    if isinstance(pip_data, dict):
-        public_ip = pip_data.get("properties", {}).get("ipAddress")
-    if isinstance(nic_data, dict):
+    if nic_data:
         configs = nic_data.get("properties", {}).get("ipConfigurations", [])
         if configs:
             private_ip = configs[0].get("properties", {}).get("privateIPAddress")
+
+    logger.info("get_spoke_server result: public=%s private=%s", public_ip, private_ip)
     return {"private": private_ip, "public": public_ip}
 
 
 async def get_branch(index: str) -> dict[str, Optional[str]]:
     """Return FGT PIP, Win PIP and branch subnet CIDR for the given env index."""
-    import asyncio
     rg = azure_settings.RG_BRANCHES
+    logger.info("get_branch: index=%s rg=%s", index, rg)
 
-    fgt_task = _client.get(
-        f"/resourceGroups/{rg}/providers/Microsoft.Network/publicIpAddresses"
-        f"/branch{index}Fgt-pip?api-version=2022-07-01"
+    fgt, win, subnet = await asyncio.gather(
+        _client.get(
+            f"/resourceGroups/{rg}/providers/Microsoft.Network/publicIpAddresses"
+            f"/branch{index}Fgt-pip?api-version=2022-07-01"
+        ),
+        _client.get(
+            f"/resourceGroups/{rg}/providers/Microsoft.Network/publicIpAddresses"
+            f"/branch{index}Win-pip?api-version=2022-07-01"
+        ),
+        _client.get(
+            f"/resourceGroups/{rg}/providers/Microsoft.Network/virtualNetworks"
+            f"/branch{index}Vnet/subnets/branchPrivate?api-version=2024-01-01"
+        ),
     )
-    win_task = _client.get(
-        f"/resourceGroups/{rg}/providers/Microsoft.Network/publicIpAddresses"
-        f"/branch{index}Win-pip?api-version=2022-07-01"
-    )
-    subnet_task = _client.get(
-        f"/resourceGroups/{rg}/providers/Microsoft.Network/virtualNetworks"
-        f"/branch{index}Vnet/subnets/branchPrivate?api-version=2024-01-01"
-    )
-    fgt, win, subnet = await asyncio.gather(fgt_task, win_task, subnet_task, return_exceptions=True)
 
     return {
-        "branch_fgt_pip": fgt.get("properties", {}).get("ipAddress") if isinstance(fgt, dict) else None,
-        "branch_win_pip": win.get("properties", {}).get("ipAddress") if isinstance(win, dict) else None,
-        "branch_cidr":    subnet.get("properties", {}).get("addressPrefix") if isinstance(subnet, dict) else None,
+        "branch_fgt_pip": fgt.get("properties", {}).get("ipAddress") if fgt else None,
+        "branch_win_pip": win.get("properties", {}).get("ipAddress") if win else None,
+        "branch_cidr":    subnet.get("properties", {}).get("addressPrefix") if subnet else None,
     }
 
 
 async def get_spoke(index: str) -> dict:
     """Return spoke VNet CIDR and peering count for the given env index."""
     rg = f"{azure_settings.RG_PREFIX}{index}{azure_settings.RG_SUFFIX}"
+    logger.info("get_spoke: index=%s rg=%s", index, rg)
+
     data = await _client.get(
         f"/resourceGroups/{rg}/providers/Microsoft.Network/virtualNetworks"
         f"/spoke{index}Vnet?api-version=2022-07-01"
