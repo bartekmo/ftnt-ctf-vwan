@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from app.db.session import get_db
 from app.models.models import User, UserRole
@@ -13,7 +14,6 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
-    # Check duplicates
     existing = await db.execute(
         select(User).where((User.username == body.username) | (User.email == body.email))
     )
@@ -39,14 +39,19 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
 
 @router.post("/login", response_model=TokenResponse)
 async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.username == body.username))
+    # Eagerly load the team relationship in the same query — avoids lazy-load
+    # greenlet error when accessing user.team.name outside an async context.
+    result = await db.execute(
+        select(User)
+        .where(User.username == body.username)
+        .options(selectinload(User.team))
+    )
     user = result.scalar_one_or_none()
     if not user or not verify_password(body.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Account disabled")
 
-    # Eager-load team name
     team_name = user.team.name if user.team else None
 
     token = create_access_token({"sub": str(user.id), "role": user.role})
@@ -65,15 +70,19 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
 
 @router.get("/me", response_model=UserOut)
 async def me(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    team_name = None
-    if current_user.team_id:
-        await db.refresh(current_user, ["team"])
-        team_name = current_user.team.name if current_user.team else None
+    # Eagerly load the team in the same query rather than relying on refresh
+    result = await db.execute(
+        select(User)
+        .where(User.id == current_user.id)
+        .options(selectinload(User.team))
+    )
+    user = result.scalar_one()
+    team_name = user.team.name if user.team else None
     return UserOut(
-        id=current_user.id,
-        username=current_user.username,
-        email=current_user.email,
-        role=current_user.role,
-        team_id=current_user.team_id,
+        id=user.id,
+        username=user.username,
+        email=user.email,
+        role=user.role,
+        team_id=user.team_id,
         team_name=team_name,
     )
