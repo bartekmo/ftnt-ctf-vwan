@@ -140,7 +140,7 @@ resource "azurerm_role_assignment" "api_acr_pull" {
 # - GET /resourceGroups/<branches-rg>/providers/Microsoft.Network/... (branch RG)
 # All queries span multiple resource groups so subscription-level Reader is needed.
 resource "azurerm_role_assignment" "api_subscription_reader" {
-  scope                = "/subscriptions/${var.azure_subscription_id}"
+  scope                = data.azurerm_subscription.current.id
   role_definition_name = "Reader"
   principal_id         = azurerm_container_app.api.identity[0].principal_id
 }
