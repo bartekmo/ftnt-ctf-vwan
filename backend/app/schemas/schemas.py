@@ -126,28 +126,28 @@ class TeamEnvironmentOut(BaseModel):
 
     # Hub NVAs
     fgt_nva1_name: str
-    fgt_nva1_pip: str
+    fgt_nva1_pip: Optional[str] = None
     fgt_nva2_name: str
-    fgt_nva2_pip: str
+    fgt_nva2_pip: Optional[str] = None
 
     # FortiFlex tokens
-    flex_token1: str
-    flex_token2: str
+    flex_token1: Optional[str] = None
+    flex_token2: Optional[str] = None
 
     # Spoke VNet
-    spoke_cidr: str
-    spoke_server_private: str
-    spoke_server_public: str
-    spoke_peered: bool
+    spoke_cidr: Optional[str] = None
+    spoke_server_private: Optional[str] = None
+    spoke_server_public: Optional[str] = None
+    spoke_peered: bool = False
 
     # Branch site
-    branch_cidr: str
-    branch_fgt_pip: str
-    branch_win_pip: str
+    branch_cidr: Optional[str] = None
+    branch_fgt_pip: Optional[str] = None
+    branch_win_pip: Optional[str] = None
 
     # FortiManager (shared)
-    fmg_serial: str
-    fmg_ip: str
+    fmg_serial: Optional[str] = None
+    fmg_ip: Optional[str] = None
 
     model_config = {"from_attributes": True}
 

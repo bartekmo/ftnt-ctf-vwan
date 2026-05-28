@@ -81,3 +81,58 @@ variable "github_repo" {
   type        = string
   default     = "ftnt-ctf-vwan"
 }
+
+# ── Azure infrastructure (for live ARM API calls from the API container) ──
+
+variable "azure_subscription_id" {
+  description = "Azure subscription ID. The API container uses this with its managed identity to call ARM."
+  type        = string
+  default     = ""
+}
+
+variable "vwan_name" {
+  description = "Name of the Azure Virtual WAN resource."
+  type        = string
+  default     = ""
+}
+
+variable "rg_prefix" {
+  description = "Prefix for per-student resource group names, e.g. 'vwanlab-student-'."
+  type        = string
+  default     = "vwanlab-student-"
+}
+
+variable "rg_suffix" {
+  description = "Suffix for per-student resource group names (often empty)."
+  type        = string
+  default     = ""
+}
+
+variable "rg_branches" {
+  description = "Resource group containing shared branch site resources."
+  type        = string
+  default     = ""
+}
+
+variable "flex_tokens" {
+  description = <<-EOT
+    FortiFlex token data as a JSON string. Format:
+    {"hubs": [null, ["token-a", "token-b"], ["token-c", "token-d"], ...]}
+    Index 0 is unused; index N corresponds to team env_id N.
+  EOT
+  type      = string
+  sensitive = true
+  default   = "{\"hubs\": []}"
+}
+
+variable "fmg_serial" {
+  description = "FortiManager serial number (shared across all teams)."
+  type        = string
+  default     = ""
+}
+
+variable "fmg_ip" {
+  description = "FortiManager IP address or FQDN (shared across all teams)."
+  type        = string
+  default     = ""
+}

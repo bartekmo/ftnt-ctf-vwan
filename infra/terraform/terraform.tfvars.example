@@ -23,3 +23,16 @@ api_secret_key = "CHANGE_ME_run_openssl_rand_hex_32"
 # GitHub
 github_org  = "bartekmo"
 github_repo = "ftnt-ctf-vwan"
+
+# Azure infrastructure (for live ARM API calls)
+azure_subscription_id = ""
+vwan_name             = ""
+rg_prefix             = "vwanlab-student-"
+rg_suffix             = ""
+rg_branches           = ""
+fmg_serial            = ""
+fmg_ip                = ""
+
+# FortiFlex tokens — JSON, index 0 unused, index N = env_id N
+# flex_tokens = "{\"hubs\": [null, [\"FLEX-TOKEN-A\", \"FLEX-TOKEN-B\"], ...]}"
+flex_tokens = "{\"hubs\": []}"

@@ -45,6 +45,10 @@ resource "azurerm_container_app" "api" {
     name  = "secret-key"
     value = var.api_secret_key
   }
+  secret {
+    name  = "flex-tokens"
+    value = var.flex_tokens
+  }
 
   template {
     min_replicas = 1
@@ -59,6 +63,40 @@ resource "azurerm_container_app" "api" {
       env {
         name  = "ENVIRONMENT"
         value = "production"
+      }
+      # Azure infrastructure settings for live ARM API calls
+      env {
+        name  = "AZURE_SUBSCRIPTION_ID"
+        value = var.azure_subscription_id
+      }
+      env {
+        name  = "VWAN_NAME"
+        value = var.vwan_name
+      }
+      env {
+        name  = "RG_PREFIX"
+        value = var.rg_prefix
+      }
+      env {
+        name  = "RG_SUFFIX"
+        value = var.rg_suffix
+      }
+      env {
+        name  = "RG_BRANCHES"
+        value = var.rg_branches
+      }
+      env {
+        name  = "FMG_SERIAL"
+        value = var.fmg_serial
+      }
+      env {
+        name  = "FMG_IP"
+        value = var.fmg_ip
+      }
+      # Sensitive: FortiFlex tokens JSON stored as a Container Apps secret
+      env {
+        name        = "FLEX_TOKENS"
+        secret_name = "flex-tokens"
       }
       # CORS origin is the frontend's public FQDN — derived from the
       # environment default domain which is known at plan time.
@@ -92,6 +130,18 @@ resource "azurerm_container_app" "api" {
 resource "azurerm_role_assignment" "api_acr_pull" {
   scope                = azurerm_container_registry.ctf.id
   role_definition_name = "AcrPull"
+  principal_id         = azurerm_container_app.api.identity[0].principal_id
+}
+
+# Reader on the subscription — required for ARM API calls from the API container:
+# - GET /providers/Microsoft.Network/virtualHubs            (subscription-wide)
+# - GET /providers/Microsoft.Network/networkVirtualAppliances (subscription-wide)
+# - GET /resourceGroups/<student-rg>/providers/Microsoft.Network/... (per-team RGs)
+# - GET /resourceGroups/<branches-rg>/providers/Microsoft.Network/... (branch RG)
+# All queries span multiple resource groups so subscription-level Reader is needed.
+resource "azurerm_role_assignment" "api_subscription_reader" {
+  scope                = "/subscriptions/${var.azure_subscription_id}"
+  role_definition_name = "Reader"
   principal_id         = azurerm_container_app.api.identity[0].principal_id
 }
 

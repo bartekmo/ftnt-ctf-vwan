@@ -28,3 +28,28 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+class AzureSettings(BaseSettings):
+    # Azure identity & subscription
+    AZURE_SUBSCRIPTION_ID: str = ""
+
+    # vWAN infrastructure
+    VWAN_NAME: str = ""
+    RG_PREFIX: str = "vwanlab-student-"
+    RG_SUFFIX: str = ""
+    RG_BRANCHES: str = ""
+
+    # FortiFlex tokens — JSON string: {"hubs": [null, [token1, token2], [token1, token2], ...]}
+    # Index 0 is unused; index N corresponds to env_id N.
+    FLEX_TOKENS: str = "{\"hubs\": []}"
+
+    # FortiManager (shared across all teams)
+    FMG_SERIAL: str = ""
+    FMG_IP: str = ""
+
+    class Config:
+        env_file = ".env"
+
+
+azure_settings = AzureSettings()

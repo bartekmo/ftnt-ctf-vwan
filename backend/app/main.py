@@ -9,7 +9,7 @@ from app.db.session import Base
 # Import all models so Base.metadata picks them up
 from app.models import models  # noqa
 
-from app.api.routes import auth, teams, challenges, scoreboard, users
+from app.api.routes import auth, teams, challenges, scoreboard, users, infra
 
 
 @asynccontextmanager
@@ -44,6 +44,7 @@ app.include_router(teams.router, prefix="/api")
 app.include_router(challenges.router, prefix="/api")
 app.include_router(scoreboard.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
+app.include_router(infra.router, prefix="/api")
 
 
 @app.get("/health")

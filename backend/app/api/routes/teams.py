@@ -47,14 +47,57 @@ def _team_out(team: Team) -> TeamOut:
     )
 
 
-def _build_environment(team: Team) -> TeamEnvironmentOut:
+async def _build_environment(team: Team) -> TeamEnvironmentOut:
     """
-    Compute all environment data derived from env_id.
-    Fields that require live Azure data use placeholder strings — they will be
-    replaced once the environment API is wired up.
+    Build the full environment data for a team by combining:
+    - Deterministic values derived from env_id (ASNs, overlay ranges, credentials)
+    - Live data fetched from Azure ARM API (PIPs, CIDRs, peering state)
+    - Static config from environment variables (FMG, FortiFlex tokens)
     """
+    from app.services import azure_api
+    from app.core.config import azure_settings
+    import json
+
     n = team.env_id or 0
     ns = f"{n:02d}"
+
+    # Hub name follows the pattern used in the lab deployment
+    hub_name = f"vwanlab{ns}-hub"
+
+    # Fetch live Azure data in parallel
+    import asyncio
+    pips_task    = azure_api.get_nva_pips(hub_name)
+    srv_task     = azure_api.get_spoke_server(ns)
+    branch_task  = azure_api.get_branch(ns)
+    spoke_task   = azure_api.get_spoke(ns)
+    pips, srv, branch, spoke = await asyncio.gather(
+        pips_task, srv_task, branch_task, spoke_task,
+        return_exceptions=True
+    )
+
+    # Safely unpack results — fall back to None if Azure call failed
+    def safe(result, default):
+        return result if isinstance(result, (dict, type(None))) else default
+
+    pips   = safe(pips, {})
+    srv    = safe(srv, {})
+    branch = safe(branch, {})
+    spoke  = safe(spoke, {})
+
+    # NVA PIPs: keys are instance names like "Nic0_Instance0", "Nic0_Instance1"
+    pip_values = list(pips.values()) if pips else []
+    fgt_nva1_pip = pip_values[0] if len(pip_values) > 0 else None
+    fgt_nva2_pip = pip_values[1] if len(pip_values) > 1 else None
+
+    # FortiFlex tokens from env JSON
+    flex_token1 = flex_token2 = None
+    try:
+        tokens = json.loads(azure_settings.FLEX_TOKENS)
+        hub_tokens = tokens["hubs"][n] if n < len(tokens["hubs"]) else []
+        flex_token1 = hub_tokens[0] if len(hub_tokens) > 0 else None
+        flex_token2 = hub_tokens[1] if len(hub_tokens) > 1 else None
+    except (json.JSONDecodeError, KeyError, IndexError):
+        pass
 
     return TeamEnvironmentOut(
         team_id=team.id,
@@ -62,33 +105,33 @@ def _build_environment(team: Team) -> TeamEnvironmentOut:
         env_id=ns,
         # Azure credentials
         azure_username=f"vwanlab{ns}@fortinetcloud.onmicrosoft.com",
-        azure_password=f"vwanlab{ns}",          # placeholder — real value from Key Vault
+        azure_password=f"vwanlab{ns}",
         # ASNs
         fgt_asn=_ASNS[n] if n < len(_ASNS) else 64512 + n,
         azure_asn=65515,
-        # Networking — derived deterministically from env_id
+        # Networking
         overlay_network=f"10.200.{n}.0/24",
         sdwan_healthcheck_range=f"172.{n}.0.0/16",
-        # Hub NVAs — placeholders until prober/infra API provides real IPs
+        # Hub NVAs — live from Azure
         fgt_nva1_name=f"vwanlab{ns}-hub-fgt1",
-        fgt_nva1_pip="<pending>",
+        fgt_nva1_pip=fgt_nva1_pip,
         fgt_nva2_name=f"vwanlab{ns}-hub-fgt2",
-        fgt_nva2_pip="<pending>",
-        # FortiFlex tokens — placeholders
-        flex_token1="<pending>",
-        flex_token2="<pending>",
-        # Spoke
-        spoke_cidr=f"10.{n}.1.0/24",           # placeholder pattern
-        spoke_server_private=f"10.{n}.1.4",    # placeholder
-        spoke_server_public="<pending>",
-        spoke_peered=False,
-        # Branch
-        branch_cidr=f"10.{n}.100.0/24",        # placeholder pattern
-        branch_fgt_pip="<pending>",
-        branch_win_pip="<pending>",
-        # FortiManager (shared across all teams)
-        fmg_serial="<pending>",
-        fmg_ip="<pending>",
+        fgt_nva2_pip=fgt_nva2_pip,
+        # FortiFlex tokens — from FLEX_TOKENS env var
+        flex_token1=flex_token1,
+        flex_token2=flex_token2,
+        # Spoke — live from Azure
+        spoke_cidr=spoke.get("spoke_cidr"),
+        spoke_server_private=srv.get("private"),
+        spoke_server_public=srv.get("public"),
+        spoke_peered=spoke.get("spoke_peered", False),
+        # Branch — live from Azure
+        branch_cidr=branch.get("branch_cidr"),
+        branch_fgt_pip=branch.get("branch_fgt_pip"),
+        branch_win_pip=branch.get("branch_win_pip"),
+        # FortiManager — from env vars
+        fmg_serial=azure_settings.FMG_SERIAL or None,
+        fmg_ip=azure_settings.FMG_IP or None,
     )
 
 
@@ -184,7 +227,7 @@ async def get_my_environment(
     if not team:
         raise HTTPException(404, "Team not found")
 
-    return _build_environment(team)
+    return await _build_environment(team)
 
 
 @router.get("/{team_id}", response_model=TeamDetailOut)
@@ -217,7 +260,7 @@ async def get_team_environment(
     team = result.scalar_one_or_none()
     if not team:
         raise HTTPException(404, "Team not found")
-    return _build_environment(team)
+    return await _build_environment(team)
 
 
 # ---------------------------------------------------------------------------
