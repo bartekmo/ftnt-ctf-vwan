@@ -26,6 +26,28 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/infra", tags=["infra"])
 
 
+@router.get("/diagnostic")
+async def diagnostic(_: User = Depends(get_current_trainer)):
+    """Returns resolved config values and the exact ARM URLs that would be called for env 01.
+    Use this to verify env vars are set correctly without waiting for ARM timeouts."""
+    sub = azure_settings.AZURE_SUBSCRIPTION_ID
+    rg = f"{azure_settings.RG_PREFIX}01{azure_settings.RG_SUFFIX}"
+    base = f"https://management.azure.com/subscriptions/{sub}"
+    return {
+        "subscription_id": sub or "*** NOT SET ***",
+        "vwan_name":        azure_settings.VWAN_NAME or "*** NOT SET ***",
+        "rg_prefix":        azure_settings.RG_PREFIX,
+        "rg_suffix":        azure_settings.RG_SUFFIX,
+        "rg_branches":      azure_settings.RG_BRANCHES or "*** NOT SET ***",
+        "fmg_ip":           azure_settings.FMG_IP or "*** NOT SET ***",
+        "sample_arm_urls": {
+            "spoke_pip": f"{base}/resourceGroups/{rg}/providers/Microsoft.Network/publicIpAddresses/spoke01Srv-pip?api-version=2022-07-01",
+            "spoke_nic": f"{base}/resourceGroups/{rg}/providers/Microsoft.Network/networkInterfaces/spoke01Srv-nic1?api-version=2022-07-01",
+            "vhubs":     f"{base}/providers/Microsoft.Network/virtualHubs?api-version=2022-07-01",
+        },
+    }
+
+
 # ── Response models ────────────────────────────────────────────────────────
 
 class PrefixOut(BaseModel):

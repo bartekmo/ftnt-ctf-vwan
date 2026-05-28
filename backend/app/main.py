@@ -1,8 +1,10 @@
+import logging
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.core.config import settings
+from app.core.config import settings, azure_settings
 from app.db.session import engine
 from app.db.session import Base
 
@@ -11,13 +13,25 @@ from app.models import models  # noqa
 
 from app.api.routes import auth, teams, challenges, scoreboard, users, infra
 
+logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Log Azure config on startup so misconfiguration is immediately visible
+    logger.info("=== Azure settings ===")
+    logger.info("  AZURE_SUBSCRIPTION_ID : %s",
+                azure_settings.AZURE_SUBSCRIPTION_ID or "*** NOT SET ***")
+    logger.info("  VWAN_NAME             : %s", azure_settings.VWAN_NAME or "*** NOT SET ***")
+    logger.info("  RG_PREFIX             : %s", azure_settings.RG_PREFIX)
+    logger.info("  RG_SUFFIX             : %s", repr(azure_settings.RG_SUFFIX))
+    logger.info("  RG_BRANCHES           : %s", azure_settings.RG_BRANCHES or "*** NOT SET ***")
+    logger.info("  FMG_IP                : %s", azure_settings.FMG_IP or "*** NOT SET ***")
+    logger.info("  FMG_SERIAL            : %s", azure_settings.FMG_SERIAL or "*** NOT SET ***")
+    logger.info("  FLEX_TOKENS set       : %s", azure_settings.FLEX_TOKENS != '{"hubs": []}')
+    logger.info("======================")
+
     # create_all is idempotent — safe to run on every startup.
-    # It creates any tables that don't exist yet and leaves existing ones alone.
-    # This is appropriate for an ephemeral workshop platform; a long-lived
-    # production service would use Alembic migrations instead.
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield
