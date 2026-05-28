@@ -1,10 +1,6 @@
 /**
- * Challenge data layer.
- *
- * Imports all MDX challenge files at build time using Vite's glob import.
- * The @challenges alias resolves to ../../challenges (the repo-level directory).
+ * Challenge data layer — imports MDX files and index.yaml at build time.
  */
-import yaml from 'js-yaml'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -37,26 +33,21 @@ export interface ChallengeEntry extends ChallengeMeta {
 
 // ── Static imports ─────────────────────────────────────────────────────────
 
-// Glob relative to this file: ../../../challenges/*/challenge.mdx
-// Using the alias is more reliable across environments
+// Import index.yaml directly — Vite parses YAML files as JS objects natively
+import indexData from '../../../challenges/index.yaml'
+
+// Glob all MDX challenge files
 const mdxModules = import.meta.glob(
   '../../../challenges/*/challenge.mdx',
   { eager: true }
 ) as Record<string, { default: React.ComponentType; frontmatter?: Partial<ChallengeMeta> }>
 
-const indexRaw = import.meta.glob(
-  '../../../challenges/index.yaml',
-  { eager: true, query: '?raw', import: 'default' }
-) as Record<string, string>
-
 // ── Build registry ─────────────────────────────────────────────────────────
 
 function buildRegistry(): ChallengeEntry[] {
-  // Parse index.yaml
-  const indexText = Object.values(indexRaw)[0] ?? ''
-  const indexData = yaml.load(indexText) as { challenges: ChallengeMeta[] } | null
+  const parsed = indexData as { challenges: ChallengeMeta[] }
   const indexById = new Map<string, ChallengeMeta>(
-    (indexData?.challenges ?? []).map(c => [c.id, c])
+    (parsed?.challenges ?? []).map((c: ChallengeMeta) => [c.id, c])
   )
 
   const entries: ChallengeEntry[] = []
@@ -67,14 +58,20 @@ function buildRegistry(): ChallengeEntry[] {
     const id = match[1]
 
     const indexMeta = indexById.get(id) ?? {} as ChallengeMeta
-    const fmMeta = (mod.frontmatter ?? {}) as Partial<ChallengeMeta>
-
-    entries.push({
+    // MDX frontmatter only has hints/refs — index.yaml is authoritative for
+    // visible, scored, points, order. Spread order: index first, mdx second
+    // but only pick defined values from mdx frontmatter.
+    const fmMeta = mod.frontmatter ?? {}
+    const entry: ChallengeEntry = {
       ...indexMeta,
-      ...fmMeta,
+      // Only override with MDX frontmatter values that are explicitly defined
+      ...(fmMeta.hints   !== undefined && { hints:   fmMeta.hints }),
+      ...(fmMeta.refs    !== undefined && { refs:    fmMeta.refs }),
+      ...(fmMeta.title   !== undefined && { title:   fmMeta.title }),
       id,
       Component: mod.default,
-    })
+    }
+    entries.push(entry)
   }
 
   return entries.sort((a, b) => (a.order ?? 99) - (b.order ?? 99))
