@@ -19,6 +19,6 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["src"],
+  "include": ["src", "../../challenges/**/*.mdx"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
