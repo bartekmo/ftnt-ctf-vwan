@@ -46,13 +46,13 @@ In the **Azure Portal**, navigate to your Virtual Hub → **VPN (Site to site)**
 
 ### 2. Configure the first tunnel on the branch FortiGate
 
-Log in to the branch FortiGate at `https://<EnvVarInline field="branch_fgt_pip" />`.
+Log in to the branch FortiGate at https://<EnvVarInline field="branch_fgt_pip" />.
 
 Go to **VPN → IPsec Wizard** and create a new **Site to Site** tunnel:
 
 | Parameter | Value |
 |-----------|-------|
-| Remote gateway | `<EnvVarInline field="fgt_nva1_pip" />` |
+| Remote gateway | <EnvVarInline field="fgt_nva1_pip" /> |
 | IKE version | IKEv2 |
 | Pre-shared key | *from Azure portal* |
 | Local interface | wan1 |

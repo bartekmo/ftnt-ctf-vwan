@@ -3,15 +3,20 @@ import react from '@vitejs/plugin-react'
 import mdx from '@mdx-js/rollup'
 import yaml from '@rollup/plugin-yaml'
 import remarkGfm from 'remark-gfm'
+import remarkFrontmatter from 'remark-frontmatter'
+import remarkMdxFrontmatter from 'remark-mdx-frontmatter'
 import rehypeHighlight from 'rehype-highlight'
 import path from 'path'
 
 export default defineConfig({
   plugins: [
-    // YAML must come before MDX and React
     yaml(),
     mdx({
-      remarkPlugins: [remarkGfm],
+      remarkPlugins: [
+        remarkGfm,
+        remarkFrontmatter,           // parses --- YAML block
+        remarkMdxFrontmatter,        // exports it as `frontmatter` named export
+      ],
       rehypePlugins: [rehypeHighlight],
       providerImportSource: path.resolve(__dirname, './node_modules/@mdx-js/react'),
     }),

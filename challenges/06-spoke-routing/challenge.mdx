@@ -63,8 +63,8 @@ With routing intent enabled, **all** traffic flows through the NVAs. Without a p
 | Name | `spoke-to-branch` |
 | Incoming interface | hub internal interface |
 | Outgoing interface | hub internal interface |
-| Source | `<EnvVarInline field="spoke_cidr" />` |
-| Destination | `<EnvVarInline field="branch_cidr" />` |
+| Source | <EnvVarInline field="spoke_cidr" /> |
+| Destination | <EnvVarInline field="branch_cidr" /> |
 | Action | Accept |
 | Log | All sessions |
 
@@ -72,7 +72,7 @@ Add a matching policy for the reverse direction (`branch-to-spoke`).
 
 ### 3. Test connectivity
 
-From the **Windows Desktop** on the branch (`<EnvVarInline field="branch_win_pip" />`), open a command prompt and ping the spoke server:
+From the **Windows Desktop** on the branch (<EnvVarInline field="branch_win_pip" />), open a command prompt and ping the spoke server:
 
 ```
 ping <EnvVarInline field="spoke_server_private" />
@@ -86,6 +86,6 @@ You can also verify routing from the branch FortiGate CLI:
 get router info routing-table all
 ```
 
-The spoke CIDR `<EnvVarInline field="spoke_cidr" />` should appear as a BGP-learned route via the tunnel interfaces.
+The spoke CIDR <EnvVarInline field="spoke_cidr" /> should appear as a BGP-learned route via the tunnel interfaces.
 
 > **This challenge is scored.** The prober verifies that traffic between the branch and spoke server successfully passes through the NVAs.
