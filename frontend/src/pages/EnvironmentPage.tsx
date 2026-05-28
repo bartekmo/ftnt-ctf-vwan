@@ -66,14 +66,14 @@ export default function EnvironmentPage() {
 
   // Spoke server: prefer live data from /infra/hubs/.../srv, fall back to env data
   const spokePrivate = srv?.private ?? env.spoke_server_private
-  const spokePublic  = srv?.public  ?? env.spoke_server_public
+  const spokePublic = srv?.public ?? env.spoke_server_public
 
   // FMG: prefer live data from /infra/fmg, fall back to env data
   const fmgSerial = fmg?.serial ?? env.fmg_serial
-  const fmgIp     = fmg?.ip     ?? env.fmg_ip
+  const fmgIp = fmg?.ip ?? env.fmg_ip
 
   return (
-    <div className="page-enter" style={{ maxWidth: 900, margin: '0 auto', padding: '2rem 1.5rem' }}>
+    <div className="page-enter" style={{ maxWidth: 1180, margin: '0 auto', padding: '2rem 1.5rem' }}>
 
       {/* Page header */}
       <div style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
@@ -147,10 +147,10 @@ export default function EnvironmentPage() {
 
         {/* Networking */}
         <EnvCard icon={<Cpu size={18} color="var(--color-teal)" />} title="Networking">
-          <EnvRow label="Overlay network"   value={env.overlay_network}        onCopy={() => copy(env.overlay_network, 'overlay')}   copied={copied === 'overlay'} mono />
+          <EnvRow label="Overlay network" value={env.overlay_network} onCopy={() => copy(env.overlay_network, 'overlay')} copied={copied === 'overlay'} mono />
           <EnvRow label="SD-WAN healthcheck" value={env.sdwan_healthcheck_range} onCopy={() => copy(env.sdwan_healthcheck_range, 'hc')} copied={copied === 'hc'} mono />
-          <EnvRow label="Spoke CIDR"        value={env.spoke_cidr}             onCopy={() => copy(env.spoke_cidr, 'spoke_cidr')}     copied={copied === 'spoke_cidr'} mono />
-          <EnvRow label="Branch CIDR"       value={env.branch_cidr}            onCopy={() => copy(env.branch_cidr, 'branch_cidr')}   copied={copied === 'branch_cidr'} mono />
+          <EnvRow label="Spoke CIDR" value={env.spoke_cidr} onCopy={() => copy(env.spoke_cidr, 'spoke_cidr')} copied={copied === 'spoke_cidr'} mono />
+          <EnvRow label="Branch CIDR" value={env.branch_cidr} onCopy={() => copy(env.branch_cidr, 'branch_cidr')} copied={copied === 'branch_cidr'} mono />
         </EnvCard>
 
         {/* Hub NVAs */}
@@ -168,7 +168,7 @@ export default function EnvironmentPage() {
         {/* Spoke VNet — live data from /infra/hubs/{hub}/srv */}
         <EnvCard icon={<GitBranch size={18} color="var(--color-teal)" />} title="Spoke VNet">
           <EnvRow label="Server (private)" value={spokePrivate} onCopy={() => copy(spokePrivate, 'spoke_priv')} copied={copied === 'spoke_priv'} mono />
-          <EnvRow label="Server (public)"  value={spokePublic}  onCopy={() => copy(spokePublic,  'spoke_pub')}  copied={copied === 'spoke_pub'}  mono />
+          <EnvRow label="Server (public)" value={spokePublic} onCopy={() => copy(spokePublic, 'spoke_pub')} copied={copied === 'spoke_pub'} mono />
           <div style={{ marginTop: '0.6rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}>
             <span className="text-muted">VNet peering:</span>
             <span className={`badge ${env.spoke_peered ? 'badge-green' : 'badge-gray'}`}>
@@ -179,8 +179,8 @@ export default function EnvironmentPage() {
 
         {/* Branch */}
         <EnvCard icon={<GitBranch size={18} color="var(--color-red)" />} title="Branch Site">
-          <EnvRow label="FortiGate PIP"    value={env.branch_fgt_pip} onCopy={() => copy(env.branch_fgt_pip, 'br_fgt')} copied={copied === 'br_fgt'} mono />
-          <EnvRow label="Windows Desktop"  value={env.branch_win_pip} onCopy={() => copy(env.branch_win_pip, 'br_win')} copied={copied === 'br_win'} mono />
+          <EnvRow label="FortiGate PIP" value={env.branch_fgt_pip} onCopy={() => copy(env.branch_fgt_pip, 'br_fgt')} copied={copied === 'br_fgt'} mono />
+          <EnvRow label="Windows Desktop" value={env.branch_win_pip} onCopy={() => copy(env.branch_win_pip, 'br_win')} copied={copied === 'br_win'} mono />
           {env.branch_fgt_pip && (
             <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-border)' }}>
               <a href={`https://${env.branch_fgt_pip}`} target="_blank" rel="noreferrer"
