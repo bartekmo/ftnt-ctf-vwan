@@ -149,9 +149,13 @@ async def get_hub(
 @router.get("/hubs/{hub_name}/pips", response_model=PipsOut)
 async def get_hub_pips(
     hub_name: str,
-    _: User = Depends(get_current_trainer),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
-    """Public IPs of all NVA NICs in the given hub. Trainer only."""
+    """Public IPs of all NVA NICs in the given hub.
+    Attendees may only query their own hub; trainers can query any hub."""
+    index = _hub_index(hub_name)
+    await _require_own_index(index, user, db)
     pips = await azure_api.get_nva_pips(hub_name)
     return PipsOut(hub=hub_name, pips=pips)
 
