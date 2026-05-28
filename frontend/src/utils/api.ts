@@ -181,3 +181,19 @@ export const usersApi = {
   list: () => api.get<User[]>('/users'),
   setRole: (userId: number, role: string) => api.put(`/users/${userId}/role?role=${role}`),
 }
+// ── Infra API ──
+
+export interface SrvOut {
+  private: string | null
+  public: string | null
+}
+
+export interface FmgOut {
+  serial: string
+  ip: string
+}
+
+export const infraApi = {
+  fmg: () => api.get<FmgOut>('/infra/fmg'),
+  srv: (hubName: string) => api.get<SrvOut>(`/infra/hubs/${hubName}/srv`),
+}

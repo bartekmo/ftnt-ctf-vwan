@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { teamsApi, type TeamEnvironment } from '@/utils/api'
+import { teamsApi, infraApi, type TeamEnvironment, type SrvOut, type FmgOut } from '@/utils/api'
 import { useAuthStore } from '@/store/authStore'
 import {
   Server, Network, Key, Cpu, GitBranch,
@@ -11,19 +11,38 @@ export default function EnvironmentPage() {
   const { user } = useAuthStore()
   const navigate = useNavigate()
   const [env, setEnv] = useState<TeamEnvironment | null>(null)
+  const [srv, setSrv] = useState<SrvOut | null>(null)
+  const [fmg, setFmg] = useState<FmgOut | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user?.team_id) { navigate('/team'); return }
+
     teamsApi.myEnvironment()
-      .then(r => setEnv(r.data))
+      .then(r => {
+        const envData = r.data
+        setEnv(envData)
+
+        // Hub name = "hub" + env_id, e.g. env_id "01" → "hub01"
+        const hubName = `hub${envData.env_id}`
+
+        // Fetch live FMG and spoke server data in parallel
+        Promise.allSettled([
+          infraApi.srv(hubName),
+          infraApi.fmg(),
+        ]).then(([srvResult, fmgResult]) => {
+          if (srvResult.status === 'fulfilled') setSrv(srvResult.value.data)
+          if (fmgResult.status === 'fulfilled') setFmg(fmgResult.value.data)
+        })
+      })
       .catch(() => setError('Failed to load environment data'))
       .finally(() => setLoading(false))
   }, [user, navigate])
 
-  const copy = (text: string, key: string) => {
+  const copy = (text: string | null | undefined, key: string) => {
+    if (!text) return
     navigator.clipboard.writeText(text)
     setCopied(key)
     setTimeout(() => setCopied(null), 2000)
@@ -41,7 +60,13 @@ export default function EnvironmentPage() {
     </div>
   )
 
-  const isPending = (v: string) => v === '<pending>'
+  // Spoke server: prefer live data from /infra/hubs/.../srv, fall back to env data
+  const spokePrivate = srv?.private ?? env.spoke_server_private
+  const spokePublic  = srv?.public  ?? env.spoke_server_public
+
+  // FMG: prefer live data from /infra/fmg, fall back to env data
+  const fmgSerial = fmg?.serial ?? env.fmg_serial
+  const fmgIp     = fmg?.ip     ?? env.fmg_ip
 
   return (
     <div className="page-enter" style={{ maxWidth: 900, margin: '0 auto', padding: '2rem 1.5rem' }}>
@@ -84,14 +109,10 @@ export default function EnvironmentPage() {
         {/* Azure Credentials */}
         <EnvCard icon={<Key size={18} color="var(--color-red)" />} title="Azure Credentials">
           <EnvRow label="Username" value={env.azure_username} onCopy={() => copy(env.azure_username, 'az_user')} copied={copied === 'az_user'} />
-          <EnvRow label="Password" value={env.azure_password} secret onCopy={() => copy(env.azure_password, 'az_pass')} copied={copied === 'az_pass'} pending={isPending(env.azure_password)} />
+          <EnvRow label="Password" value={env.azure_password} secret onCopy={() => copy(env.azure_password, 'az_pass')} copied={copied === 'az_pass'} />
           <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-border)' }}>
-            <a
-              href="https://portal.azure.com"
-              target="_blank"
-              rel="noreferrer"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: 'var(--color-teal)' }}
-            >
+            <a href="https://portal.azure.com" target="_blank" rel="noreferrer"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: 'var(--color-teal)' }}>
               <Globe size={13} /> portal.azure.com ↗
             </a>
           </div>
@@ -105,40 +126,28 @@ export default function EnvironmentPage() {
 
         {/* Networking */}
         <EnvCard icon={<Cpu size={18} color="var(--color-teal)" />} title="Networking">
-          <EnvRow label="Overlay network" value={env.overlay_network} onCopy={() => copy(env.overlay_network, 'overlay')} copied={copied === 'overlay'} mono />
+          <EnvRow label="Overlay network"   value={env.overlay_network}        onCopy={() => copy(env.overlay_network, 'overlay')}   copied={copied === 'overlay'} mono />
           <EnvRow label="SD-WAN healthcheck" value={env.sdwan_healthcheck_range} onCopy={() => copy(env.sdwan_healthcheck_range, 'hc')} copied={copied === 'hc'} mono />
-          <EnvRow label="Spoke CIDR" value={env.spoke_cidr} onCopy={() => copy(env.spoke_cidr, 'spoke_cidr')} copied={copied === 'spoke_cidr'} mono />
-          <EnvRow label="Branch CIDR" value={env.branch_cidr} onCopy={() => copy(env.branch_cidr, 'branch_cidr')} copied={copied === 'branch_cidr'} mono />
+          <EnvRow label="Spoke CIDR"        value={env.spoke_cidr}             onCopy={() => copy(env.spoke_cidr, 'spoke_cidr')}     copied={copied === 'spoke_cidr'} mono />
+          <EnvRow label="Branch CIDR"       value={env.branch_cidr}            onCopy={() => copy(env.branch_cidr, 'branch_cidr')}   copied={copied === 'branch_cidr'} mono />
         </EnvCard>
 
         {/* Hub NVAs */}
         <EnvCard icon={<Server size={18} color="var(--color-red)" />} title="Hub NVAs (FortiGates)">
-          <NvaRow
-            name={env.fgt_nva1_name}
-            pip={env.fgt_nva1_pip}
-            pending={isPending(env.fgt_nva1_pip)}
-            onCopy={() => copy(env.fgt_nva1_pip, 'fgt1')}
-            copied={copied === 'fgt1'}
-          />
-          <NvaRow
-            name={env.fgt_nva2_name}
-            pip={env.fgt_nva2_pip}
-            pending={isPending(env.fgt_nva2_pip)}
-            onCopy={() => copy(env.fgt_nva2_pip, 'fgt2')}
-            copied={copied === 'fgt2'}
-          />
+          <NvaRow name={env.fgt_nva1_name} pip={env.fgt_nva1_pip} onCopy={() => copy(env.fgt_nva1_pip, 'fgt1')} copied={copied === 'fgt1'} />
+          <NvaRow name={env.fgt_nva2_name} pip={env.fgt_nva2_pip} onCopy={() => copy(env.fgt_nva2_pip, 'fgt2')} copied={copied === 'fgt2'} />
         </EnvCard>
 
         {/* FortiFlex */}
         <EnvCard icon={<Key size={18} color="var(--color-teal)" />} title="FortiFlex Tokens (NVA Licenses)">
-          <EnvRow label="Token 1" value={env.flex_token1} onCopy={() => copy(env.flex_token1, 'flex1')} copied={copied === 'flex1'} mono pending={isPending(env.flex_token1)} />
-          <EnvRow label="Token 2" value={env.flex_token2} onCopy={() => copy(env.flex_token2, 'flex2')} copied={copied === 'flex2'} mono pending={isPending(env.flex_token2)} />
+          <EnvRow label="Token 1" value={env.flex_token1} onCopy={() => copy(env.flex_token1, 'flex1')} copied={copied === 'flex1'} mono />
+          <EnvRow label="Token 2" value={env.flex_token2} onCopy={() => copy(env.flex_token2, 'flex2')} copied={copied === 'flex2'} mono />
         </EnvCard>
 
-        {/* Spoke */}
+        {/* Spoke VNet — live data from /infra/hubs/{hub}/srv */}
         <EnvCard icon={<GitBranch size={18} color="var(--color-teal)" />} title="Spoke VNet">
-          <EnvRow label="Server (private)" value={env.spoke_server_private} onCopy={() => copy(env.spoke_server_private, 'spoke_priv')} copied={copied === 'spoke_priv'} mono />
-          <EnvRow label="Server (public)" value={env.spoke_server_public} onCopy={() => copy(env.spoke_server_public, 'spoke_pub')} copied={copied === 'spoke_pub'} mono pending={isPending(env.spoke_server_public)} />
+          <EnvRow label="Server (private)" value={spokePrivate} onCopy={() => copy(spokePrivate, 'spoke_priv')} copied={copied === 'spoke_priv'} mono />
+          <EnvRow label="Server (public)"  value={spokePublic}  onCopy={() => copy(spokePublic,  'spoke_pub')}  copied={copied === 'spoke_pub'}  mono />
           <div style={{ marginTop: '0.6rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}>
             <span className="text-muted">VNet peering:</span>
             <span className={`badge ${env.spoke_peered ? 'badge-green' : 'badge-gray'}`}>
@@ -149,9 +158,9 @@ export default function EnvironmentPage() {
 
         {/* Branch */}
         <EnvCard icon={<GitBranch size={18} color="var(--color-red)" />} title="Branch Site">
-          <EnvRow label="FortiGate PIP" value={env.branch_fgt_pip} onCopy={() => copy(env.branch_fgt_pip, 'br_fgt')} copied={copied === 'br_fgt'} mono pending={isPending(env.branch_fgt_pip)} />
-          <EnvRow label="Windows Desktop" value={env.branch_win_pip} onCopy={() => copy(env.branch_win_pip, 'br_win')} copied={copied === 'br_win'} mono pending={isPending(env.branch_win_pip)} />
-          {!isPending(env.branch_fgt_pip) && (
+          <EnvRow label="FortiGate PIP"    value={env.branch_fgt_pip} onCopy={() => copy(env.branch_fgt_pip, 'br_fgt')} copied={copied === 'br_fgt'} mono />
+          <EnvRow label="Windows Desktop"  value={env.branch_win_pip} onCopy={() => copy(env.branch_win_pip, 'br_win')} copied={copied === 'br_win'} mono />
+          {env.branch_fgt_pip && (
             <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-border)' }}>
               <a href={`https://${env.branch_fgt_pip}`} target="_blank" rel="noreferrer"
                 style={{ fontSize: '0.85rem', color: 'var(--color-teal)', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
@@ -161,15 +170,13 @@ export default function EnvironmentPage() {
           )}
         </EnvCard>
 
-        {/* FortiManager */}
+        {/* FortiManager — live data from /api/infra/fmg */}
         <EnvCard icon={<Server size={18} color="var(--color-teal)" />} title="FortiManager (Shared)">
-          <EnvRow label="Serial" value={env.fmg_serial} mono pending={isPending(env.fmg_serial)} />
-          <EnvRow label="IP" value={env.fmg_ip} mono pending={isPending(env.fmg_ip)}
-            onCopy={!isPending(env.fmg_ip) ? () => copy(env.fmg_ip, 'fmg') : undefined}
-            copied={copied === 'fmg'} />
-          {!isPending(env.fmg_ip) && (
+          <EnvRow label="Serial" value={fmgSerial} mono />
+          <EnvRow label="IP / FQDN" value={fmgIp} mono onCopy={() => copy(fmgIp, 'fmg')} copied={copied === 'fmg'} />
+          {fmgIp && (
             <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-border)' }}>
-              <a href={`https://${env.fmg_ip}`} target="_blank" rel="noreferrer"
+              <a href={`https://${fmgIp}`} target="_blank" rel="noreferrer"
                 style={{ fontSize: '0.85rem', color: 'var(--color-teal)', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
                 <Globe size={13} /> Open FortiManager ↗
               </a>
@@ -219,16 +226,16 @@ function EnvCard({ icon, title, children }: { icon: React.ReactNode; title: stri
   )
 }
 
-function EnvRow({ label, value, secret, mono, onCopy, copied, pending }: {
+function EnvRow({ label, value, secret, mono, onCopy, copied }: {
   label: string
-  value: string
+  value: string | null | undefined
   secret?: boolean
   mono?: boolean
   onCopy?: () => void
   copied?: boolean
-  pending?: boolean
 }) {
   const [revealed, setRevealed] = useState(false)
+  const pending = value == null || value === ''
   const display = pending ? undefined : (secret && !revealed ? '••••••••' : value)
 
   return (
@@ -240,12 +247,7 @@ function EnvRow({ label, value, secret, mono, onCopy, copied, pending }: {
             <Clock size={11} /> pending
           </span>
         ) : (
-          <span style={{
-            fontFamily: mono || secret ? 'var(--font-mono)' : 'var(--font-body)',
-            fontSize: '0.85rem',
-            color: 'var(--color-text)',
-            wordBreak: 'break-all',
-          }}>
+          <span style={{ fontFamily: mono || secret ? 'var(--font-mono)' : 'var(--font-body)', fontSize: '0.85rem', color: 'var(--color-text)', wordBreak: 'break-all' }}>
             {display}
           </span>
         )}
@@ -264,17 +266,12 @@ function EnvRow({ label, value, secret, mono, onCopy, copied, pending }: {
   )
 }
 
-function NvaRow({ name, pip, pending, onCopy, copied }: {
-  name: string; pip: string; pending: boolean; onCopy: () => void; copied: boolean
+function NvaRow({ name, pip, onCopy, copied }: {
+  name: string; pip: string | null | undefined; onCopy: () => void; copied: boolean
 }) {
+  const pending = pip == null || pip === ''
   return (
-    <div style={{
-      background: 'var(--color-surface-2)',
-      border: '1px solid var(--color-border)',
-      borderRadius: 'var(--radius-md)',
-      padding: '0.6rem 0.75rem',
-      display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem',
-    }}>
+    <div style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: '0.6rem 0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem' }}>
       <div>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text)', fontWeight: 600 }}>{name}</div>
         {pending ? (
