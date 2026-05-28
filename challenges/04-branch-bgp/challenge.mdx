@@ -1,0 +1,91 @@
+---
+id: 04-branch-bgp
+title: "Configure Branch BGP"
+category: routing
+points: 150
+scored: true
+prober: check_branch_bgp
+order: 4
+hints:
+  - text: "BGP neighbours on the branch FortiGate should be the two hub NVA inside-tunnel IP addresses, not their public IPs. Check the Azure portal for the NVA BGP peer addresses."
+    cost: 20
+  - text: "Enable BGP under Network → BGP on the branch FortiGate. Set your local AS to the value shown in your environment (fgt_asn). Add both NVA tunnel IPs as neighbours with remote AS 65515."
+    cost: 25
+  - text: "You need to advertise the branch network prefix under BGP → Networks. Add the branch subnet CIDR."
+    cost: 20
+refs:
+  - label: "FortiGate BGP configuration"
+    url: "https://docs.fortinet.com/document/fortigate/7.4.0/administration-guide/210236"
+  - label: "vWAN BGP peering — overview"
+    url: "https://learn.microsoft.com/en-us/azure/virtual-wan/virtual-wan-site-to-site-portal"
+---
+
+With the IPsec tunnels up, you can now establish BGP sessions over them so that routes are exchanged between the branch and the Azure vWAN hub.
+
+## BGP parameters
+
+<EnvVar field="fgt_asn" label="Your FortiGate ASN" />
+<EnvVar field="azure_asn" label="Azure vWAN ASN" />
+<EnvVar field="branch_cidr" label="Branch subnet to advertise" />
+
+## How BGP over vWAN works
+
+```
+Branch FGT (AS <fgt_asn>)
+  │
+  ├── eBGP over tunnel-1 ──► NVA 1 (AS 65515)
+  │                               │
+  └── eBGP over tunnel-2 ──► NVA 2 (AS 65515) ──► Azure vWAN router
+                                                         │
+                                               routes to all spokes,
+                                               other branches, and hubs
+```
+
+The NVA BGP peer addresses are **tunnel interface IPs**, not the public IPs you used for IPsec. Find them in the Azure portal under **Virtual Hub → Network Virtual Appliances → <EnvVarInline field="fgt_nva1_name" />** — look for the **BGP peer IP** field.
+
+## Steps
+
+### 1. Enable BGP on the branch FortiGate
+
+Go to **Network → BGP** and configure:
+
+| Parameter | Value |
+|-----------|-------|
+| Local AS | `<EnvVarInline field="fgt_asn" />` |
+| Router ID | Branch WAN IP |
+| Graceful restart | Enable |
+
+### 2. Add BGP neighbours
+
+Add one neighbour per NVA tunnel interface:
+
+| Neighbour | Remote AS | Update source |
+|-----------|-----------|---------------|
+| NVA 1 tunnel BGP IP | 65515 | tunnel-to-nva1 |
+| NVA 2 tunnel BGP IP | 65515 | tunnel-to-nva2 |
+
+Enable **ebgp-multipath** to use both paths simultaneously.
+
+### 3. Advertise the branch network
+
+Under **BGP → Networks**, add:
+
+```
+<EnvVarInline field="branch_cidr" />
+```
+
+### 4. Apply and verify
+
+```
+get router info bgp summary
+```
+
+Both neighbours should show state **Established** and a non-zero **Up/Down** timer.
+
+```
+get router info routing-table all
+```
+
+You should see routes to the Azure hub address space learned via BGP.
+
+> **Note:** It may take up to 60 seconds for BGP to converge after configuration is saved.

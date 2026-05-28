@@ -1,0 +1,60 @@
+---
+id: 05-spoke-peering
+title: "Peer the Spoke VNet"
+category: networking
+points: 100
+scored: true
+prober: check_spoke_peered
+order: 5
+hints:
+  - text: "VNet peering to a vWAN hub is done from the Virtual Hub blade in the Azure Portal, not from the VNet itself. Go to your Virtual Hub → Virtual network connections."
+    cost: 15
+  - text: "When adding the peering, make sure 'Propagate default route' is disabled for now — you will control routing explicitly in the next challenge."
+    cost: 20
+refs:
+  - label: "Connect a VNet to a vWAN hub"
+    url: "https://learn.microsoft.com/en-us/azure/virtual-wan/howto-connect-vnet-hub"
+---
+
+Your spoke VNet contains a server that represents a workload in the cloud. Until the VNet is peered to the vWAN hub, it is completely isolated. In this challenge you will connect it.
+
+## Spoke details
+
+<EnvVar field="spoke_cidr" label="Spoke VNet address space" />
+<EnvVar field="spoke_server_private" label="Spoke server private IP" />
+
+The diagram on your **My Environment** page will update to show the peering connection once it is established.
+
+## Steps
+
+### 1. Open the Virtual Hub
+
+In the Azure Portal, navigate to:
+
+**Virtual WANs → your vWAN → Hubs → your hub**
+
+### 2. Add a VNet connection
+
+Click **Virtual network connections** in the left menu, then **+ Add connection**.
+
+| Parameter | Value |
+|-----------|-------|
+| Connection name | `spoke<EnvVarInline field="env_id" />-connection` |
+| Hubs | your hub |
+| Subscription | your subscription |
+| Virtual network | `spoke<EnvVarInline field="env_id" />Vnet` |
+| Propagate default route | No |
+
+Click **Create** and wait for the connection to show **Succeeded** (typically 1–3 minutes).
+
+### 3. Verify peering state
+
+The **My Environment** page diagram should now show the spoke connected to the hub. You can also verify from the CLI on one of the hub NVAs:
+
+```
+get router info bgp network
+```
+
+You should see the spoke CIDR `<EnvVarInline field="spoke_cidr" />` in the routing table.
+
+> **This challenge is scored.** The prober checks that the VNet peering is in **Connected** state before awarding points.

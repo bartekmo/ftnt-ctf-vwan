@@ -1,0 +1,58 @@
+---
+id: 01-access-azure
+title: "Access your Azure environment"
+category: misc
+points: 0
+scored: false
+order: 1
+refs:
+  - label: "Azure Portal"
+    url: "https://portal.azure.com"
+  - label: "FortiGate vWAN Deployment Guide"
+    url: "https://docs.fortinet.com/document/fortigate-public-cloud/7.4.0/azure-vwan-sd-wan-ngfw-deployment-guide/355051/deploying-vwan-on-azure"
+---
+
+This is an informational challenge — no scoring, just orientation. Read through it carefully before proceeding.
+
+## Your lab environment
+
+Each team has a dedicated Azure subscription slice pre-provisioned with the following components:
+
+- An **Azure Virtual WAN** with a single hub in **West Europe**
+- Two **FortiGate NVA** instances deployed inside the hub (unlicensed at the start)
+- A **branch site** simulating an on-premises office — FortiGate + Windows desktop
+- A **spoke VNet** that is not yet connected to the hub
+
+Your goal over the course of this workshop is to connect all these pieces together into a working SD-WAN deployment.
+
+## Log in to the Azure Portal
+
+Use the credentials below to access your Azure environment.
+
+<EnvVar field="azure_username" label="Username" />
+<EnvVar field="azure_password" label="Password" secret />
+<EnvVar field="rg_name" label="Resource group" />
+<EnvVar field="azure_asn" label="Azure vWAN ASN" />
+
+Open the [Azure Portal](https://portal.azure.com) and navigate to your resource group **<EnvVarInline field="rg_name" />** to familiarise yourself with the deployed resources.
+
+## What you will find
+
+| Resource | Description |
+|----------|-------------|
+| Virtual WAN | The top-level vWAN resource |
+| Virtual Hub | Hub in West Europe — your FortiGates live here |
+| FortiGate NVA 1 | First hub NVA — needs licensing |
+| FortiGate NVA 2 | Second hub NVA — needs licensing |
+| Branch resource group | Simulated on-premises site (separate RG) |
+| Spoke VNet | Workload network — not yet peered |
+
+## Access the branch FortiGate
+
+The branch FortiGate management interface is reachable at:
+
+<EnvVar field="branch_fgt_pip" label="Branch FortiGate PIP" />
+
+Open `https://<EnvVarInline field="branch_fgt_pip" />` in your browser. Accept the self-signed certificate warning. Log in with username **admin** and the password provided by the trainer.
+
+> **Note:** The branch FortiGate is pre-configured with a basic WAN interface but has no VPN or BGP configuration yet. You will add that in the next challenges.

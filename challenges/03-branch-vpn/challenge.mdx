@@ -1,0 +1,82 @@
+---
+id: 03-branch-vpn
+title: "Establish the Branch VPN tunnel"
+category: vpn
+points: 150
+scored: true
+prober: check_branch_vpn
+order: 3
+hints:
+  - text: "The hub NVAs expect IKEv2 with pre-shared key authentication. Check the Azure portal for the VPN gateway configuration on the hub to find the expected parameters."
+    cost: 20
+  - text: "On the branch FortiGate, create a new IPsec tunnel using the VPN Wizard → Site to Site. Set the remote gateway to the NVA 1 public IP. Use IKEv2, and match the proposal to what the hub expects (AES256/SHA256)."
+    cost: 30
+  - text: "The tunnel will come up but may show no traffic yet — that is expected until BGP is configured in the next challenge."
+    cost: 10
+refs:
+  - label: "FortiGate IPsec VPN — Site to site"
+    url: "https://docs.fortinet.com/document/fortigate/7.4.0/administration-guide/762635"
+  - label: "FortiGate in Azure vWAN — Branch config"
+    url: "https://docs.fortinet.com/document/fortigate-public-cloud/7.4.0/azure-vwan-sd-wan-ngfw-deployment-guide/355051"
+---
+
+With the NVAs licensed, you can now establish the IPsec VPN tunnel from your branch FortiGate to the hub NVAs.
+
+## Network addresses
+
+<EnvVar field="branch_fgt_pip" label="Branch FortiGate WAN IP" />
+<EnvVar field="branch_cidr" label="Branch subnet" />
+<EnvVar field="fgt_nva1_pip" label="Hub NVA 1 Public IP (primary)" />
+<EnvVar field="fgt_nva2_pip" label="Hub NVA 2 Public IP (secondary)" />
+
+## Overview
+
+The branch FortiGate needs two IPsec tunnels — one to each hub NVA — to provide redundancy. The tunnels use **IKEv2** with a pre-shared key that is configured on the Azure vWAN hub.
+
+```
+Branch FGT ──[IPsec/IKEv2]──► NVA 1 (primary)
+           └─[IPsec/IKEv2]──► NVA 2 (secondary)
+```
+
+## Steps
+
+### 1. Find the pre-shared key
+
+In the **Azure Portal**, navigate to your Virtual Hub → **VPN (Site to site)** → locate the VPN site for your branch and view the connection parameters. Note the **Pre-Shared Key**.
+
+### 2. Configure the first tunnel on the branch FortiGate
+
+Log in to the branch FortiGate at `https://<EnvVarInline field="branch_fgt_pip" />`.
+
+Go to **VPN → IPsec Wizard** and create a new **Site to Site** tunnel:
+
+| Parameter | Value |
+|-----------|-------|
+| Remote gateway | `<EnvVarInline field="fgt_nva1_pip" />` |
+| IKE version | IKEv2 |
+| Pre-shared key | *from Azure portal* |
+| Local interface | wan1 |
+| Phase 1 proposal | AES256-SHA256, DH group 14 |
+| Phase 2 proposal | AES256-SHA256 |
+| Dead peer detection | Enable |
+
+### 3. Configure the second tunnel
+
+Repeat with remote gateway set to **<EnvVarInline field="fgt_nva2_pip" />**.
+
+### 4. Bring the tunnels up
+
+In **VPN → IPsec Tunnels**, select each tunnel and click **Bring Up**. Both should show status **Up** within a few seconds.
+
+## Verification
+
+Run the following on the branch FortiGate CLI:
+
+```
+diagnose vpn ike gateway list
+diagnose vpn tunnel list
+```
+
+Both tunnels should show **established** IKE SAs and active tunnel SAs.
+
+> **Tip:** If a tunnel stays down, check that the branch WAN interface is correctly set and that port 500/4500 UDP is not blocked.

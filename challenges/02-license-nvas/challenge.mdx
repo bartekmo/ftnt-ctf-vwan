@@ -1,0 +1,56 @@
+---
+id: 02-license-nvas
+title: "License the FortiGate NVAs"
+category: misc
+points: 100
+scored: true
+prober: check_nva_licensed
+order: 2
+hints:
+  - text: "In FortiFlex, tokens are consumed automatically when you enter them on the FortiGate. Navigate to System > FortiGuard on each NVA and enter the token in the License section."
+    cost: 15
+  - text: "You need to apply a different token to each NVA. Token 1 goes to NVA 1, Token 2 goes to NVA 2."
+    cost: 25
+refs:
+  - label: "FortiFlex documentation"
+    url: "https://docs.fortinet.com/document/fortiflex/latest/administration-guide"
+  - label: "FortiGate — License activation"
+    url: "https://docs.fortinet.com/document/fortigate/7.4.0/administration-guide/997216"
+---
+
+Before the FortiGate NVAs can pass traffic, they must be licensed using **FortiFlex** tokens. Each NVA requires its own token.
+
+## Your FortiFlex tokens
+
+<EnvVar field="flex_token1" label="FortiFlex Token — NVA 1" secret />
+<EnvVar field="flex_token2" label="FortiFlex Token — NVA 2" secret />
+
+## NVA management access
+
+Access each FortiGate NVA through its public IP address:
+
+<EnvVar field="fgt_nva1_pip" label="NVA 1 Public IP" />
+<EnvVar field="fgt_nva2_pip" label="NVA 2 Public IP" />
+
+Log in with username **admin** and the password provided by the trainer.
+
+## Steps
+
+1. Open `https://<EnvVarInline field="fgt_nva1_pip" />` in your browser
+2. Navigate to **System → FortiGuard**
+3. Under **License Information**, click **Enter License**
+4. Paste **Token 1** from above and confirm
+5. Wait for the license to activate — the status should change to **Licensed**
+6. Repeat steps 1–5 for NVA 2 using **Token 2** and the address `https://<EnvVarInline field="fgt_nva2_pip" />`
+
+## Verification
+
+Once both NVAs are licensed, run the following CLI command on each to confirm:
+
+```
+get system status
+```
+
+Look for `License Status: Valid` in the output.
+
+> **This challenge is scored.** The prober checks that both NVAs have a valid license before awarding points.

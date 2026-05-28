@@ -1,0 +1,70 @@
+# Xperts26 vWAN CTF — Challenge Index
+#
+# Challenges are solved sequentially. Later challenges depend on earlier ones
+# being completed (e.g. BGP configuration requires the VPN tunnel to be up).
+#
+# Fields:
+#   id          string   unique slug, matches directory name
+#   title       string   displayed in sidebar and challenge header
+#   category    enum     networking | vpn | routing | security | monitoring | misc
+#   points      int      base score awarded on solve (0 = informational, not scored)
+#   scored      bool     false = informational only, no prober, no points
+#   prober      string   prober function name (omit if scored: false)
+#   order       int      1-based display order, drives sidebar and sequential lock
+#   visible     bool     false = hidden until trainer makes visible
+#
+# Hints are defined inside each challenge's MDX frontmatter, not here.
+
+challenges:
+  - id: 01-access-azure
+    title: "Access your Azure environment"
+    category: misc
+    points: 0
+    scored: false
+    order: 1
+    visible: true
+
+  - id: 02-license-nvas
+    title: "License the FortiGate NVAs"
+    category: misc
+    points: 100
+    scored: true
+    prober: check_nva_licensed
+    order: 2
+    visible: true
+
+  - id: 03-branch-vpn
+    title: "Establish the Branch VPN tunnel"
+    category: vpn
+    points: 150
+    scored: true
+    prober: check_branch_vpn
+    order: 3
+    visible: true
+
+  - id: 04-branch-bgp
+    title: "Configure Branch BGP"
+    category: routing
+    points: 150
+    scored: true
+    prober: check_branch_bgp
+    order: 4
+    visible: true
+
+  - id: 05-spoke-peering
+    title: "Peer the Spoke VNet"
+    category: networking
+    points: 100
+    scored: true
+    prober: check_spoke_peered
+    order: 5
+    visible: true
+
+  - id: 06-spoke-routing
+    title: "Route Spoke traffic through the hub"
+    category: routing
+    points: 200
+    scored: true
+    prober: check_spoke_routing
+    order: 6
+    visible: true
