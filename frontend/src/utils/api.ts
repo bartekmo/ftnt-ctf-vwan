@@ -199,8 +199,27 @@ export interface FmgOut {
   ip: string
 }
 
+export interface PipsOut {
+  hub: string
+  pips: Record<string, string>
+}
+
+export interface BranchOut {
+  branch_fgt_pip: string | null
+  branch_win_pip: string | null
+  branch_cidr: string | null
+}
+
+export interface SpokeOut {
+  spoke_cidr: string | null
+  spoke_peered: boolean
+}
+
 export const infraApi = {
-  fmg: () => api.get<FmgOut>('/infra/fmg'),
-  srv: (hubName: string) => api.get<SrvOut>(`/infra/hubs/${hubName}/srv`),
-  hub: (hubName: string) => api.get<HubDetailOut>(`/infra/hubs/${hubName}`),
+  fmg:     ()                  => api.get<FmgOut>('/infra/fmg'),
+  srv:     (hubName: string)   => api.get<SrvOut>(`/infra/hubs/${hubName}/srv`),
+  hub:     (hubName: string)   => api.get<HubDetailOut>(`/infra/hubs/${hubName}`),
+  pips:    (hubName: string)   => api.get<PipsOut>(`/infra/hubs/${hubName}/pips`),
+  branches:(index: string)     => api.get<BranchOut>(`/infra/branches/${index}`),
+  spokes:  (index: string)     => api.get<SpokeOut>(`/infra/spokes/${index}`),
 }

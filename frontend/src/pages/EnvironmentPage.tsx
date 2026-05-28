@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { teamsApi, infraApi, type TeamEnvironment, type SrvOut, type FmgOut, type HubDetailOut } from '@/utils/api'
+import LabDiagram from '@/components/shared/LabDiagram'
 import { useAuthStore } from '@/store/authStore'
 import {
   Server, Network, Key, Cpu, GitBranch,
@@ -191,6 +192,14 @@ export default function EnvironmentPage() {
         </EnvCard>
 
 
+      </div>
+
+      {/* Network topology diagram */}
+      <div style={{ marginTop: '1.5rem' }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.85rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-text-muted)', marginBottom: '0.75rem' }}>
+          Network Topology
+        </div>
+        <LabDiagram envId={env.env_id} hubName={`hub${env.env_id}`} />
       </div>
 
       {/* Useful links */}
