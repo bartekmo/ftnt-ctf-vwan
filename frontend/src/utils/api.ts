@@ -57,6 +57,7 @@ export interface TeamEnvironment {
   env_id: string
   azure_username: string
   azure_password: string
+  rg_name: string
   fgt_asn: number
   azure_asn: number
   overlay_network: string
@@ -183,6 +184,11 @@ export const usersApi = {
 }
 // ── Infra API ──
 
+export interface HubDetailOut {
+  name: string
+  location: string
+}
+
 export interface SrvOut {
   private: string | null
   public: string | null
@@ -196,4 +202,5 @@ export interface FmgOut {
 export const infraApi = {
   fmg: () => api.get<FmgOut>('/infra/fmg'),
   srv: (hubName: string) => api.get<SrvOut>(`/infra/hubs/${hubName}/srv`),
+  hub: (hubName: string) => api.get<HubDetailOut>(`/infra/hubs/${hubName}`),
 }

@@ -61,6 +61,11 @@ class HubOut(BaseModel):
 class HubsOut(BaseModel):
     hubs: list[HubOut]
 
+
+class HubDetailOut(BaseModel):
+    name: str
+    location: str
+
 class PipsOut(BaseModel):
     hub: str
     pips: dict[str, str]
@@ -123,6 +128,22 @@ async def list_hubs(_: User = Depends(get_current_user)):
         raise HTTPException(503, "VWAN_NAME not configured")
     hubs = await azure_api.get_hubs(azure_settings.VWAN_NAME)
     return HubsOut(hubs=[HubOut(**h) for h in hubs])
+
+
+@router.get("/hubs/{hub_name}", response_model=HubDetailOut)
+async def get_hub(
+    hub_name: str,
+    _: User = Depends(get_current_user),
+):
+    """Return name and location of a single vWAN hub. Used by the environment
+    page to display the region for the team's hub without fetching all hubs."""
+    if not azure_settings.VWAN_NAME:
+        raise HTTPException(503, "VWAN_NAME not configured")
+    hubs = await azure_api.get_hubs(azure_settings.VWAN_NAME)
+    hub = next((h for h in hubs if h["name"] == hub_name), None)
+    if not hub:
+        raise HTTPException(404, f"Hub '{hub_name}' not found")
+    return HubDetailOut(**hub)
 
 
 @router.get("/hubs/{hub_name}/pips", response_model=PipsOut)
