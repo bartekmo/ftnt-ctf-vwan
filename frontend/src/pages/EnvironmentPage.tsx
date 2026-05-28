@@ -98,7 +98,7 @@ export default function EnvironmentPage() {
               borderRadius: 'var(--radius-sm)',
               padding: '0.1rem 0.5rem',
             }}>
-              #{env.env_id}
+              hub{env.env_id}
             </span>
           </h2>
           <p className="text-muted" style={{ fontSize: '0.9rem' }}>
@@ -121,6 +121,21 @@ export default function EnvironmentPage() {
               <Globe size={13} /> portal.azure.com ↗
             </a>
           </div>
+        </EnvCard>
+
+        {/* FortiManager — live data from /api/infra/fmg */}
+        <EnvCard icon={<Server size={18} color="var(--color-teal)" />} title="FortiManager (Shared)">
+          <EnvRow label="Username" value={`vwanlab${env.env_id}`} onCopy={() => copy(`vwanlab${env.env_id}`, 'fmg_user')} copied={copied === 'fmg_user'} mono />
+          <EnvRow label="Serial" value={fmgSerial} mono />
+          <EnvRow label="IP / FQDN" value={fmgIp} mono onCopy={() => copy(fmgIp, 'fmg')} copied={copied === 'fmg'} />
+          {fmgIp && (
+            <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-border)' }}>
+              <a href={`https://${fmgIp}`} target="_blank" rel="noreferrer"
+                style={{ fontSize: '0.85rem', color: 'var(--color-teal)', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Globe size={13} /> Open FortiManager ↗
+              </a>
+            </div>
+          )}
         </EnvCard>
 
         {/* BGP / ASNs */}
@@ -175,19 +190,6 @@ export default function EnvironmentPage() {
           )}
         </EnvCard>
 
-        {/* FortiManager — live data from /api/infra/fmg */}
-        <EnvCard icon={<Server size={18} color="var(--color-teal)" />} title="FortiManager (Shared)">
-          <EnvRow label="Serial" value={fmgSerial} mono />
-          <EnvRow label="IP / FQDN" value={fmgIp} mono onCopy={() => copy(fmgIp, 'fmg')} copied={copied === 'fmg'} />
-          {fmgIp && (
-            <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-border)' }}>
-              <a href={`https://${fmgIp}`} target="_blank" rel="noreferrer"
-                style={{ fontSize: '0.85rem', color: 'var(--color-teal)', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Globe size={13} /> Open FortiManager ↗
-              </a>
-            </div>
-          )}
-        </EnvCard>
 
       </div>
 
