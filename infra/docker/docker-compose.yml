@@ -37,8 +37,8 @@ services:
 
   frontend:
     build:
-      context: ../../frontend
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: frontend/Dockerfile
     environment:
       API_URL: http://api:8000
       API_HOST: api

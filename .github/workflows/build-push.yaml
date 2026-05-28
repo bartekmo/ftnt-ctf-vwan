@@ -82,6 +82,7 @@ jobs:
           filters: |
             frontend:
               - 'frontend/**'
+              - 'challenges/**'
               - '.github/workflows/build-push.yaml'
 
       - name: Azure login (OIDC)
@@ -104,7 +105,7 @@ jobs:
         if: steps.filter.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch'
         uses: docker/build-push-action@v6
         with:
-          context: ./frontend
+          context: .
           file: ./frontend/Dockerfile
           push: true
           # No build-time API URL needed — API_URL is injected at runtime
