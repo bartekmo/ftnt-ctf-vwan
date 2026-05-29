@@ -96,20 +96,8 @@ export interface Challenge {
   is_solved_by_team: boolean
 }
 
-export interface Hint {
-  id: number
-  challenge_id: number
-  points_cost: number
-  order_index: number
-  content: string | null
-  is_purchased: boolean
-}
-
-export interface HintUse {
-  hint_id: number
-  team_id: number
-  team_name: string
-  challenge_title: string
+export interface HintUnlock {
+  hint_key: string        // "{challenge_slug}:{hint_index}"
   points_cost: number
   used_at: string
 }
@@ -162,17 +150,11 @@ export const teamsApi = {
 }
 
 export const challengesApi = {
-  list: () => api.get<Challenge[]>('/challenges'),
-  get: (id: number) => api.get<Challenge>(`/challenges/${id}`),
-  hints: (id: number) => api.get<Hint[]>(`/challenges/${id}/hints`),
-  unlockHint: (challengeId: number, hintId: number) =>
-    api.post<Hint>(`/challenges/${challengeId}/hints/${hintId}/unlock`),
-  create: (data: Partial<Challenge>) => api.post<Challenge>('/challenges', data),
-  update: (id: number, data: Partial<Challenge>) => api.put<Challenge>(`/challenges/${id}`, data),
-  delete: (id: number) => api.delete(`/challenges/${id}`),
-  createHint: (challengeId: number, data: Partial<Hint>) =>
-    api.post<Hint>(`/challenges/${challengeId}/hints`, data),
-  allHintUses: () => api.get<HintUse[]>('/challenges/admin/hint-uses'),
+  // Returns which hint indices this team has already unlocked
+  hintUnlocks: (slug: string) => api.get<HintUnlock[]>(`/challenges/${slug}/hints`),
+  // Unlock a hint — frontend passes points_cost from MDX frontmatter
+  unlockHint: (slug: string, hintIndex: number, pointsCost: number) =>
+    api.post<HintUnlock>(`/challenges/${slug}/hints/${hintIndex}/unlock`, { points_cost: pointsCost }),
 }
 
 export const scoreboardApi = {

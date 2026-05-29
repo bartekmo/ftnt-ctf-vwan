@@ -38,13 +38,13 @@ async def get_teams() -> list[dict]:
         return resp.json()
 
 
-async def get_solves_for_challenge(challenge_id: int) -> list[dict]:
+async def get_solves_for_challenge(challenge_slug: str) -> list[dict]:
     """Return all existing solves for a challenge (to skip already-solved teams)."""
     async with httpx.AsyncClient(base_url=CTF_API_URL, timeout=10) as client:
         resp = await client.get("/api/solves", headers=_headers())
         resp.raise_for_status()
         all_solves = resp.json()
-        return [s for s in all_solves if s["challenge_id"] == challenge_id]
+        return [s for s in all_solves if s["challenge_slug"] == challenge_slug]
 
 
 async def get_challenge_id_by_prober(prober_name: str) -> Optional[int]:
@@ -54,7 +54,8 @@ async def get_challenge_id_by_prober(prober_name: str) -> Optional[int]:
 
 
 async def record_solve(
-    challenge_id: int,
+    challenge_slug: str,
+    challenge_title: str,
     team_id: int,
     points_awarded: int,
     is_first_blood: bool,
@@ -65,10 +66,11 @@ async def record_solve(
             "/api/solves",
             headers=_headers(),
             json={
-                "challenge_id":  challenge_id,
-                "team_id":       team_id,
-                "points_awarded": points_awarded,
-                "is_first_blood": is_first_blood,
+                "challenge_slug":  challenge_slug,
+                "challenge_title": challenge_title,
+                "team_id":         team_id,
+                "points_awarded":  points_awarded,
+                "is_first_blood":  is_first_blood,
             },
         )
         if resp.status_code == 409:

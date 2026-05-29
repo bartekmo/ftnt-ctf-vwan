@@ -89,14 +89,10 @@ def build_team_context(team: dict) -> Optional[TeamContext]:
 
 async def probe_challenge(challenge: dict, teams: list[dict]) -> None:
     """Run one prober against all unsolved teams for a single challenge."""
-    prober_name  = challenge["prober"]
-    challenge_id = challenge.get("db_id")   # resolved from API before calling
-    base_points  = challenge.get("points", 100)
-    title        = challenge["title"]
-
-    if not challenge_id:
-        logger.warning("No DB id for challenge '%s' — skipping", title)
-        return
+    prober_name     = challenge["prober"]
+    challenge_slug  = challenge["id"]
+    challenge_title = challenge["title"]
+    base_points     = challenge.get("points", 100)
 
     # Load the prober function
     try:
@@ -107,7 +103,7 @@ async def probe_challenge(challenge: dict, teams: list[dict]) -> None:
 
     # Fetch existing solves to skip teams that already completed this challenge
     try:
-        existing_solves = await api_client.get_solves_for_challenge(challenge_id)
+        existing_solves = await api_client.get_solves_for_challenge(challenge_slug)
     except Exception as e:
         logger.error("Failed to fetch solves for challenge %d: %s", challenge_id, e)
         return
@@ -125,7 +121,7 @@ async def probe_challenge(challenge: dict, teams: list[dict]) -> None:
         logger.debug("All teams solved '%s' — nothing to check", title)
         return
 
-    logger.info("Probing '%s' for %d unsolved teams", title, len(unsolved_teams))
+    logger.info("Probing '%s' for %d unsolved teams", challenge_title, len(unsolved_teams))
 
     for team in unsolved_teams:
         ctx = build_team_context(team)
@@ -154,17 +150,18 @@ async def probe_challenge(challenge: dict, teams: list[dict]) -> None:
 
         logger.info(
             "  ✓ %s solved '%s' — pos=%d base=%d bonus=%d total=%d%s",
-            ctx.team_name, title, solve_position,
+            ctx.team_name, challenge_title, solve_position,
             base_points, bonus, total_points,
             " 🩸 FIRST BLOOD" if is_first_blood else "",
         )
 
         try:
             await api_client.record_solve(
-                challenge_id  = challenge_id,
-                team_id       = ctx.team_id,
-                points_awarded = total_points,
-                is_first_blood = is_first_blood,
+                challenge_slug  = challenge_slug,
+                challenge_title = challenge_title,
+                team_id         = ctx.team_id,
+                points_awarded  = total_points,
+                is_first_blood  = is_first_blood,
             )
         except Exception as e:
             logger.error("Failed to record solve for team %s: %s", ctx.team_name, e)
@@ -204,23 +201,7 @@ async def main() -> None:
     # Load challenge index and resolve DB ids from the CTF API
     challenges = load_scored_challenges()
 
-    # Fetch all challenges from API to get DB ids by title matching
-    try:
-        async with __import__("httpx").AsyncClient(
-            base_url=api_client.CTF_API_URL, timeout=10
-        ) as client:
-            resp = await client.get(
-                "/api/challenges",
-                headers={"Authorization": f"Bearer {api_client.CTF_API_TOKEN}"},
-            )
-            resp.raise_for_status()
-            db_challenges = {c["title"]: c["id"] for c in resp.json()}
-    except Exception as e:
-        logger.error("Failed to fetch challenges from API: %s", e)
-        return
-
-    for c in challenges:
-        c["db_id"] = db_challenges.get(c["title"])
+    # No DB challenge lookup needed — slugs and titles come directly from index.yaml
 
     # Run all probers — sequentially to avoid hammering ARM API
     for challenge in challenges:

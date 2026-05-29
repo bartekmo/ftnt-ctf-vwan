@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react'
-import { Play, Pause, Square, RotateCcw, Users, Eye, BookOpen, Shuffle } from 'lucide-react'
-import { scoreboardApi, challengesApi, usersApi, teamsApi, type CTFEvent, type HintUse, type Team } from '@/utils/api'
+import { Play, Pause, Square, RotateCcw, Users, BookOpen, Shuffle } from 'lucide-react'
+import { scoreboardApi, usersApi, teamsApi, type CTFEvent, type Team } from '@/utils/api'
 import type { User } from '@/utils/api'
 
-type Tab = 'event' | 'teams' | 'hints'
+type Tab = 'event' | 'teams'
 
 export default function TrainerPage() {
   const [tab, setTab] = useState<Tab>('event')
   const [event, setEvent] = useState<CTFEvent | null>(null)
-  const [hintUses, setHintUses] = useState<HintUse[]>([])
   const [teams, setTeams] = useState<Team[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(false)
@@ -16,7 +15,6 @@ export default function TrainerPage() {
 
   useEffect(() => {
     scoreboardApi.getEvent().then(r => setEvent(r.data))
-    challengesApi.allHintUses().then(r => setHintUses(r.data))
     teamsApi.list().then(r => setTeams(r.data))
     usersApi.list().then(r => setUsers(r.data))
   }, [])
@@ -66,7 +64,6 @@ export default function TrainerPage() {
         {([
           { key: 'event', label: 'Event Control', icon: <Play size={15} /> },
           { key: 'teams', label: 'Teams & Users', icon: <Users size={15} /> },
-          { key: 'hints', label: 'Hint Usage', icon: <Eye size={15} /> },
         ] as { key: Tab; label: string; icon: React.ReactNode }[]).map(t => (
           <button key={t.key} onClick={() => setTab(t.key)} style={{
             display: 'flex', alignItems: 'center', gap: '0.4rem',
@@ -132,7 +129,7 @@ export default function TrainerPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <StatRow label="Teams" value={String(teams.length)} />
               <StatRow label="Attendees" value={String(users.filter(u => u.role === 'attendee').length)} />
-              <StatRow label="Hints used" value={String(hintUses.length)} />
+              
               {event.started_at && (
                 <StatRow label="Started" value={new Date(event.started_at).toLocaleTimeString()} />
               )}
@@ -196,43 +193,6 @@ export default function TrainerPage() {
                   <span key={u.id} className="badge badge-gray">{u.username}</span>
                 ))}
               </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Hint Usage */}
-      {tab === 'hints' && (
-        <div>
-          <div style={{ marginBottom: '1rem', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
-            {hintUses.length} total hint unlock{hintUses.length !== 1 ? 's' : ''}
-          </div>
-          {hintUses.length === 0 ? (
-            <div className="card" style={{ textAlign: 'center', padding: '3rem', color: 'var(--color-text-muted)' }}>
-              <BookOpen size={36} style={{ marginBottom: '0.75rem', opacity: 0.3 }} />
-              <p>No hints used yet</p>
-            </div>
-          ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-                    {['Team', 'Challenge', 'Cost', 'Time'].map(h => (
-                      <th key={h} style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-muted)' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {hintUses.map((hu, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                      <td style={{ padding: '0.65rem 0.75rem', fontWeight: 600 }}>{hu.team_name}</td>
-                      <td style={{ padding: '0.65rem 0.75rem', color: 'var(--color-text-muted)' }}>{hu.challenge_title}</td>
-                      <td style={{ padding: '0.65rem 0.75rem', color: 'var(--color-warning)', fontFamily: 'var(--font-mono)' }}>−{hu.points_cost}</td>
-                      <td style={{ padding: '0.65rem 0.75rem', color: 'var(--color-text-dim)', fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>{new Date(hu.used_at).toLocaleTimeString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             </div>
           )}
         </div>

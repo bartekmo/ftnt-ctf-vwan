@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, EmailStr, field_validator
 
-from app.models.models import UserRole, CTFStatus, ChallengeCategory
+from app.models.models import UserRole, CTFStatus
 
 
 # ---------------------------------------------------------------------------
@@ -169,70 +169,19 @@ class MoveUserRequest(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Challenges
+# Hints  (unlock state only — content lives in MDX frontmatter)
 # ---------------------------------------------------------------------------
 
-class ChallengeCreate(BaseModel):
-    title: str
-    description: str
-    category: ChallengeCategory = ChallengeCategory.misc
-    base_points: int = 100
-    is_visible: bool = False
-    order_index: int = 0
-
-
-class ChallengeUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    category: Optional[ChallengeCategory] = None
-    base_points: Optional[int] = None
-    is_visible: Optional[bool] = None
-    order_index: Optional[int] = None
-
-
-class ChallengeOut(BaseModel):
-    id: int
-    title: str
-    description: str
-    category: ChallengeCategory
-    base_points: int
-    is_visible: bool
-    order_index: int
-    hint_count: int = 0
-    solve_count: int = 0
-    is_solved_by_team: bool = False
-
-    model_config = {"from_attributes": True}
-
-
-# ---------------------------------------------------------------------------
-# Hints
-# ---------------------------------------------------------------------------
-
-class HintCreate(BaseModel):
-    content: str
-    points_cost: int = 10
-    order_index: int = 0
-
-
-class HintOut(BaseModel):
-    id: int
-    challenge_id: int
+class HintUnlockRequest(BaseModel):
+    """Sent by frontend when purchasing a hint."""
     points_cost: int
-    order_index: int
-    content: Optional[str] = None   # None = not yet purchased
-    is_purchased: bool = False
-
-    model_config = {"from_attributes": True}
 
 
-class HintUseOut(BaseModel):
-    hint_id: int
-    team_id: int
-    team_name: str
-    challenge_title: str
+class HintUnlockOut(BaseModel):
+    """Represents a purchased hint unlock record."""
+    hint_key:    str       # "{challenge_slug}:{hint_index}"
     points_cost: int
-    used_at: datetime
+    used_at:     datetime
 
     model_config = {"from_attributes": True}
 
@@ -242,22 +191,23 @@ class HintUseOut(BaseModel):
 # ---------------------------------------------------------------------------
 
 class SolveCreate(BaseModel):
-    """Used by probers to record a solve."""
-    challenge_id: int
-    team_id: int
-    points_awarded: int
-    is_first_blood: bool = False
+    """Used by probers to record a verified solve."""
+    challenge_slug:  str
+    challenge_title: str
+    team_id:         int
+    points_awarded:  int
+    is_first_blood:  bool = False
 
 
 class SolveOut(BaseModel):
-    id: int
-    challenge_id: int
+    id:              int
+    challenge_slug:  str
     challenge_title: str
-    team_id: int
-    team_name: str
-    points_awarded: int
-    is_first_blood: bool
-    solved_at: datetime
+    team_id:         int
+    team_name:       str
+    points_awarded:  int
+    is_first_blood:  bool
+    solved_at:       datetime
 
     model_config = {"from_attributes": True}
 

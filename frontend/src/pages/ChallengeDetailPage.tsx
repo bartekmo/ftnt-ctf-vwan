@@ -6,19 +6,8 @@ import {
 } from 'lucide-react'
 import { getChallengeById, challenges } from '@/utils/challenges'
 import { ChallengesMDXProvider } from '@/components/challenges/MDXProvider'
-import { challengesApi, type Hint } from '@/utils/api'
+import { challengesApi, type HintUnlock } from '@/utils/api'
 import { useAuthStore } from '@/store/authStore'
-
-// Map MDX challenge id to DB challenge id by matching on title
-// The DB challenges are optional — hints/solves may come from there
-async function findDbChallenge(title: string) {
-  try {
-    const res = await challengesApi.list()
-    return res.data.find(c => c.title === title) ?? null
-  } catch {
-    return null
-  }
-}
 
 export default function ChallengeDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -31,39 +20,32 @@ export default function ChallengeDetailPage() {
   const prev = currentIdx > 0 ? allVisible[currentIdx - 1] : null
   const next = currentIdx < allVisible.length - 1 ? allVisible[currentIdx + 1] : null
 
-  // DB-backed hint state (unlocked hints)
-  const [dbChallengeId, setDbChallengeId] = useState<number | null>(null)
-  const [dbHints, setDbHints] = useState<Hint[]>([])
+  // Slug-based hint unlock state — no DB challenge lookup needed
+  const [unlockedKeys, setUnlockedKeys] = useState<Set<string>>(new Set())
   const [unlocking, setUnlocking] = useState<number | null>(null)
-  const [confirmHint, setConfirmHint] = useState<{ id: number; cost: number; text: string } | null>(null)
+  const [confirmHint, setConfirmHint] = useState<{ index: number; cost: number; text: string } | null>(null)
 
   useEffect(() => {
-    if (!challenge) return
-    setDbHints([])
-    setDbChallengeId(null)
-    findDbChallenge(challenge.title).then(dbC => {
-      if (!dbC) return
-      setDbChallengeId(dbC.id)
-      challengesApi.hints(dbC.id).then(r => setDbHints(r.data))
-    })
-  }, [challenge?.id])
+    if (!challenge || !user?.team_id) return
+    setUnlockedKeys(new Set())
+    challengesApi.hintUnlocks(challenge.id).then(r => {
+      setUnlockedKeys(new Set(r.data.map((u: HintUnlock) => u.hint_key)))
+    }).catch(() => {})
+  }, [challenge?.id, user?.team_id])
 
   const unlockHint = async (hintIdx: number) => {
-    if (!dbChallengeId || !challenge?.hints?.[hintIdx]) return
-    const staticHint = challenge.hints[hintIdx]
-    // Find the matching DB hint by order
-    const dbHint = dbHints[hintIdx]
-    if (!dbHint) return
-    setConfirmHint({ id: dbHint.id, cost: staticHint.cost, text: staticHint.text })
+    if (!challenge?.hints?.[hintIdx]) return
+    const hint = challenge.hints[hintIdx]
+    setConfirmHint({ index: hintIdx, cost: hint.cost, text: hint.text })
   }
 
   const confirmUnlock = async () => {
-    if (!confirmHint || !dbChallengeId) return
-    setUnlocking(confirmHint.id)
+    if (!confirmHint || !challenge) return
+    setUnlocking(confirmHint.index)
     setConfirmHint(null)
     try {
-      const res = await challengesApi.unlockHint(dbChallengeId, confirmHint.id)
-      setDbHints(prev => prev.map(h => h.id === confirmHint.id ? res.data : h))
+      await challengesApi.unlockHint(challenge.id, confirmHint.index, confirmHint.cost)
+      setUnlockedKeys(prev => new Set([...prev, `${challenge.id}:${confirmHint.index}`]))
     } finally {
       setUnlocking(null)
     }
@@ -160,8 +142,8 @@ export default function ChallengeDetailPage() {
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {challenge.hints.map((hint, i) => {
-                const dbHint = dbHints[i]
-                const purchased = dbHint?.is_purchased ?? false
+                const hintKey = `${challenge.id}:${i}`
+                const purchased = unlockedKeys.has(hintKey)
                 return (
                   <div key={i} style={{
                     background: 'var(--color-surface-2)',
@@ -191,10 +173,10 @@ export default function ChallengeDetailPage() {
                           <button
                             className="btn btn-ghost"
                             onClick={() => unlockHint(i)}
-                            disabled={unlocking !== null || !dbChallengeId}
+                            disabled={unlocking !== null}
                             style={{ fontSize: '0.8rem', padding: '0.35rem 0.75rem' }}
                           >
-                            {unlocking === dbHint?.id
+                            {unlocking === i
                               ? <span className="spinner" style={{ width: 12, height: 12 }} />
                               : null}
                             Unlock (−{hint.cost} pts)

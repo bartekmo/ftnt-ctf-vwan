@@ -7,7 +7,7 @@ import enum
 
 from sqlalchemy import (
     String, Integer, Boolean, DateTime, Text, ForeignKey,
-    Enum as SAEnum, UniqueConstraint, func
+    Enum as SAEnum, UniqueConstraint
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -18,29 +18,16 @@ def utcnow():
     return datetime.now(timezone.utc)
 
 
-# ---------------------------------------------------------------------------
-# Enums
-# ---------------------------------------------------------------------------
-
 class UserRole(str, enum.Enum):
     attendee = "attendee"
-    trainer = "trainer"
+    trainer  = "trainer"
 
 
 class CTFStatus(str, enum.Enum):
-    pending = "pending"
-    running = "running"
-    paused = "paused"
+    pending  = "pending"
+    running  = "running"
+    paused   = "paused"
     finished = "finished"
-
-
-class ChallengeCategory(str, enum.Enum):
-    networking = "networking"
-    security = "security"
-    routing = "routing"
-    vpn = "vpn"
-    monitoring = "monitoring"
-    misc = "misc"
 
 
 # ---------------------------------------------------------------------------
@@ -50,13 +37,13 @@ class ChallengeCategory(str, enum.Enum):
 class CTFEvent(Base):
     __tablename__ = "ctf_events"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(String(200), default="Xperts26 vWAN CTF")
-    status: Mapped[CTFStatus] = mapped_column(SAEnum(CTFStatus), default=CTFStatus.pending)
-    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    first_blood_bonus: Mapped[int] = mapped_column(Integer, default=50)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    id:               Mapped[int]            = mapped_column(Integer, primary_key=True)
+    name:             Mapped[str]            = mapped_column(String(200), default="Xperts26 vWAN CTF")
+    status:           Mapped[CTFStatus]      = mapped_column(SAEnum(CTFStatus), default=CTFStatus.pending)
+    started_at:       Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    finished_at:      Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    first_blood_bonus:Mapped[int]            = mapped_column(Integer, default=50)
+    created_at:       Mapped[datetime]       = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 # ---------------------------------------------------------------------------
@@ -66,17 +53,15 @@ class CTFEvent(Base):
 class Team(Base):
     __tablename__ = "teams"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(String(100), unique=True, index=True)
-    join_code: Mapped[str] = mapped_column(String(16), unique=True, index=True)
-    # Two-digit environment identifier assigned at creation time (01-99).
-    # Unique so each team maps to a distinct Azure lab environment.
-    env_id: Mapped[Optional[int]] = mapped_column(Integer, unique=True, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    id:         Mapped[int]           = mapped_column(Integer, primary_key=True)
+    name:       Mapped[str]           = mapped_column(String(100), unique=True, index=True)
+    join_code:  Mapped[str]           = mapped_column(String(16), unique=True, index=True)
+    env_id:     Mapped[Optional[int]] = mapped_column(Integer, unique=True, nullable=True)
+    created_at: Mapped[datetime]      = mapped_column(DateTime(timezone=True), default=utcnow)
 
-    members: Mapped[List["User"]] = relationship("User", back_populates="team")
-    solves: Mapped[List["ChallengeSolve"]] = relationship("ChallengeSolve", back_populates="team")
-    hint_uses: Mapped[List["HintUse"]] = relationship("HintUse", back_populates="team")
+    members:   Mapped[List["User"]]           = relationship("User", back_populates="team")
+    solves:    Mapped[List["ChallengeSolve"]]  = relationship("ChallengeSolve", back_populates="team")
+    hint_uses: Mapped[List["HintUse"]]         = relationship("HintUse", back_populates="team")
 
     @property
     def score(self) -> int:
@@ -84,7 +69,6 @@ class Team(Base):
 
     @property
     def env_id_str(self) -> Optional[str]:
-        """Zero-padded 2-digit string, e.g. 1 -> '01'."""
         return f"{self.env_id:02d}" if self.env_id is not None else None
 
 
@@ -95,83 +79,52 @@ class Team(Base):
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    username: Mapped[str] = mapped_column(String(80), unique=True, index=True)
-    email: Mapped[str] = mapped_column(String(200), unique=True, index=True)
-    hashed_password: Mapped[str] = mapped_column(String(200))
-    role: Mapped[UserRole] = mapped_column(SAEnum(UserRole), default=UserRole.attendee)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    team_id: Mapped[Optional[int]] = mapped_column(ForeignKey("teams.id"), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    id:              Mapped[int]           = mapped_column(Integer, primary_key=True)
+    username:        Mapped[str]           = mapped_column(String(80), unique=True, index=True)
+    email:           Mapped[str]           = mapped_column(String(200), unique=True, index=True)
+    hashed_password: Mapped[str]           = mapped_column(String(200))
+    role:            Mapped[UserRole]      = mapped_column(SAEnum(UserRole), default=UserRole.attendee)
+    is_active:       Mapped[bool]          = mapped_column(Boolean, default=True)
+    team_id:         Mapped[Optional[int]] = mapped_column(ForeignKey("teams.id"), nullable=True)
+    created_at:      Mapped[datetime]      = mapped_column(DateTime(timezone=True), default=utcnow)
 
     team: Mapped[Optional["Team"]] = relationship("Team", back_populates="members")
 
 
 # ---------------------------------------------------------------------------
-# Challenges
+# Hint unlocks
+# HintUse tracks which hints a team has unlocked.
+# hint_key = "{challenge_slug}:{hint_index}" e.g. "05-spoke-peering:0"
 # ---------------------------------------------------------------------------
-
-class Challenge(Base):
-    __tablename__ = "challenges"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    title: Mapped[str] = mapped_column(String(200))
-    description: Mapped[str] = mapped_column(Text)
-    category: Mapped[ChallengeCategory] = mapped_column(SAEnum(ChallengeCategory), default=ChallengeCategory.misc)
-    base_points: Mapped[int] = mapped_column(Integer, default=100)
-    is_visible: Mapped[bool] = mapped_column(Boolean, default=False)
-    order_index: Mapped[int] = mapped_column(Integer, default=0)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
-
-    hints: Mapped[List["Hint"]] = relationship("Hint", back_populates="challenge", order_by="Hint.order_index")
-    solves: Mapped[List["ChallengeSolve"]] = relationship("ChallengeSolve", back_populates="challenge")
-
-
-# ---------------------------------------------------------------------------
-# Hints
-# ---------------------------------------------------------------------------
-
-class Hint(Base):
-    __tablename__ = "hints"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    challenge_id: Mapped[int] = mapped_column(ForeignKey("challenges.id", ondelete="CASCADE"))
-    content: Mapped[str] = mapped_column(Text)
-    points_cost: Mapped[int] = mapped_column(Integer, default=10)
-    order_index: Mapped[int] = mapped_column(Integer, default=0)
-
-    challenge: Mapped["Challenge"] = relationship("Challenge", back_populates="hints")
-    uses: Mapped[List["HintUse"]] = relationship("HintUse", back_populates="hint")
-
 
 class HintUse(Base):
     __tablename__ = "hint_uses"
-    __table_args__ = (UniqueConstraint("hint_id", "team_id"),)
+    __table_args__ = (UniqueConstraint("hint_key", "team_id"),)
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    hint_id: Mapped[int] = mapped_column(ForeignKey("hints.id", ondelete="CASCADE"))
-    team_id: Mapped[int] = mapped_column(ForeignKey("teams.id", ondelete="CASCADE"))
-    points_cost: Mapped[int] = mapped_column(Integer)
-    used_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    id:          Mapped[int]      = mapped_column(Integer, primary_key=True)
+    hint_key:    Mapped[str]      = mapped_column(String(200), index=True)  # "{slug}:{index}"
+    team_id:     Mapped[int]      = mapped_column(ForeignKey("teams.id", ondelete="CASCADE"))
+    points_cost: Mapped[int]      = mapped_column(Integer)
+    used_at:     Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
-    hint: Mapped["Hint"] = relationship("Hint", back_populates="uses")
     team: Mapped["Team"] = relationship("Team", back_populates="hint_uses")
 
 
 # ---------------------------------------------------------------------------
-# Challenge Solves  (recorded by probers)
+# Challenge Solves
+# challenge_slug references index.yaml, not a DB table.
 # ---------------------------------------------------------------------------
 
 class ChallengeSolve(Base):
     __tablename__ = "challenge_solves"
-    __table_args__ = (UniqueConstraint("challenge_id", "team_id"),)
+    __table_args__ = (UniqueConstraint("challenge_slug", "team_id"),)
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    challenge_id: Mapped[int] = mapped_column(ForeignKey("challenges.id", ondelete="CASCADE"))
-    team_id: Mapped[int] = mapped_column(ForeignKey("teams.id", ondelete="CASCADE"))
-    points_awarded: Mapped[int] = mapped_column(Integer)
-    is_first_blood: Mapped[bool] = mapped_column(Boolean, default=False)
-    solved_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    id:              Mapped[int]      = mapped_column(Integer, primary_key=True)
+    challenge_slug:  Mapped[str]      = mapped_column(String(200), index=True)  # e.g. "05-spoke-peering"
+    challenge_title: Mapped[str]      = mapped_column(String(200))               # denormalised for display
+    team_id:         Mapped[int]      = mapped_column(ForeignKey("teams.id", ondelete="CASCADE"))
+    points_awarded:  Mapped[int]      = mapped_column(Integer)
+    is_first_blood:  Mapped[bool]     = mapped_column(Boolean, default=False)
+    solved_at:       Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
-    challenge: Mapped["Challenge"] = relationship("Challenge", back_populates="solves")
     team: Mapped["Team"] = relationship("Team", back_populates="solves")
