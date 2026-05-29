@@ -105,7 +105,7 @@ async def probe_challenge(challenge: dict, teams: list[dict]) -> None:
     try:
         existing_solves = await api_client.get_solves_for_challenge(challenge_slug)
     except Exception as e:
-        logger.error("Failed to fetch solves for challenge %d: %s", challenge_id, e)
+        logger.error("Failed to fetch solves for challenge %s: %s", challenge_slug, e)
         return
 
     solved_team_ids = {s["team_id"] for s in existing_solves}
