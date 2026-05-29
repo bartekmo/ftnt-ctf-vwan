@@ -7,6 +7,7 @@
 import { MDXProvider as BaseMDXProvider } from '@mdx-js/react'
 import type { ReactNode } from 'react'
 import { EnvVar, EnvVarInline } from './EnvVar'
+import { NvaCard } from './NvaCard'
 
 // ── Prose component overrides ──────────────────────────────────────────────
 
@@ -139,6 +140,7 @@ const components: any = {
   // Available as JSX components inside any .mdx file
   EnvVar,
   EnvVarInline,
+  NvaCard,
 }
 
 export function ChallengesMDXProvider({ children }: { children?: ReactNode }) {
