@@ -2,7 +2,11 @@
 check_spoke_peered.py — prober for challenge 05-spoke-peering.
 
 Condition: the spoke VNet (spoke{env_id}Vnet) has at least one
-virtual network peering in a Connected state.
+virtual network peering entry.
+
+Detection logic replicates exactly what /api/infra/spokes/{index} does
+in backend/app/services/azure_api.py:get_spoke() — checks
+len(virtual_network_peerings) > 0 on the spoke VNet object.
 """
 import logging
 from concurrent.futures import ThreadPoolExecutor
@@ -23,23 +27,17 @@ async def check(team: TeamContext) -> ProbeResult:
         cred = ManagedIdentityCredential()
         net  = NetworkManagementClient(cred, team.subscription_id)
         vnet_name = f"spoke{team.env_id}Vnet"
+
         try:
             vnet = net.virtual_networks.get(team.rg_name, vnet_name)
         except Exception as e:
             return ProbeResult(solved=False, detail=f"VNet not found: {e}")
 
+        # Replicate get_spoke() logic exactly: presence of any peering entry
+        # is sufficient — same condition the frontend uses to show "Peered"
         peerings = vnet.virtual_network_peerings or []
-        connected = [
-            p for p in peerings
-            if (p.peering_state or "").lower() == "connected"
-        ]
-
-        if connected:
-            return ProbeResult(solved=True, detail=f"{len(connected)} peering(s) connected")
-
-        if peerings:
-            states = ", ".join(p.peering_state or "unknown" for p in peerings)
-            return ProbeResult(solved=False, detail=f"Peerings exist but not connected: {states}")
+        if len(peerings) > 0:
+            return ProbeResult(solved=True, detail=f"{len(peerings)} peering(s) present")
 
         return ProbeResult(solved=False, detail=f"{vnet_name} has no peerings")
 
