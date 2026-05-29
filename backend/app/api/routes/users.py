@@ -86,3 +86,17 @@ async def seed_trainer(
     db.add(user)
     await db.flush()
     return {"created": user.id}
+
+
+@router.post("/admin/reset-db", status_code=200)
+async def reset_database(
+    db: AsyncSession = Depends(get_db),
+    _trainer: User = Depends(get_current_trainer),
+):
+    """Drop and recreate all tables. Wipes all data. Trainer only."""
+    from app.db.session import engine, Base
+    from app.models import models  # noqa — ensure all models are loaded
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.create_all)
+    return {"reset": True, "message": "Database wiped and schema recreated."}

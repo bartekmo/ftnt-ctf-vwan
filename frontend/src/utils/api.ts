@@ -167,6 +167,7 @@ export const scoreboardApi = {
 export const usersApi = {
   list: () => api.get<User[]>('/users'),
   setRole: (userId: number, role: string) => api.put(`/users/${userId}/role?role=${role}`),
+  resetDb: () => api.post('/users/admin/reset-db'),
 }
 // ── Infra API ──
 

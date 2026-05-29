@@ -38,6 +38,18 @@ export default function TrainerPage() {
     } finally { setLoading(false) }
   }
 
+  const resetDb = async () => {
+    if (!confirm('WIPE ENTIRE DATABASE? Deletes ALL users, teams and scores. Trainer account must be re-seeded.')) return
+    if (!confirm('Are you absolutely sure? Type OK in the next dialog to confirm.')) return
+    setLoading(true)
+    try {
+      await usersApi.resetDb()
+      setMsg('Database wiped. Reload the page and re-seed the trainer account.')
+    } catch {
+      setMsg('Database reset failed.')
+    } finally { setLoading(false) }
+  }
+
   const shuffle = async () => {
     if (!confirm('Randomly reassign all attendees to teams?')) return
     const r = await teamsApi.shuffle()
@@ -117,6 +129,10 @@ export default function TrainerPage() {
               )}
               <button className="btn btn-danger" onClick={reset} disabled={loading} style={{ justifyContent: 'center' }}>
                 <RotateCcw size={15} /> Reset Scores
+              </button>
+              <div className="divider" style={{ margin: '0.5rem 0' }} />
+              <button className="btn btn-danger" onClick={resetDb} disabled={loading} style={{ justifyContent: 'center', opacity: 0.8 }}>
+                <RotateCcw size={15} /> Reset Database
               </button>
             </div>
           </div>
