@@ -39,9 +39,12 @@ resource "azurerm_container_app_job" "probers" {
     replica_completion_count = 1
   }
 
-  secret {
-    name  = "ctf-api-token"
-    value = var.prober_api_token
+  dynamic "secret" {
+    for_each = var.prober_api_token != "" ? [1] : []
+    content {
+      name  = "ctf-api-token"
+      value = var.prober_api_token
+    }
   }
 
   template {
@@ -55,9 +58,12 @@ resource "azurerm_container_app_job" "probers" {
         name  = "CTF_API_URL"
         value = "https://ctf-api.internal.${azurerm_container_app_environment.ctf.default_domain}"
       }
-      env {
-        name        = "CTF_API_TOKEN"
-        secret_name = "ctf-api-token"
+      dynamic "env" {
+        for_each = var.prober_api_token != "" ? [1] : []
+        content {
+          name        = "CTF_API_TOKEN"
+          secret_name = "ctf-api-token"
+        }
       }
       env {
         name  = "AZURE_SUBSCRIPTION_ID"
