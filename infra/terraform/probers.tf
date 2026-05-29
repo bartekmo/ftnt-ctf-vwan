@@ -56,6 +56,10 @@ resource "azurerm_container_app_job" "probers" {
         value = "/app"
       }
       env {
+        name  = "AZURE_CLIENT_ID"
+        value = azurerm_user_assigned_identity.app_id.client_id
+      }
+      env {
         name  = "CTF_API_URL"
         value = "https://ctf-api.internal.${azurerm_container_app_environment.ctf.default_domain}"
       }

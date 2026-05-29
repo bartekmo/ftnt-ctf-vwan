@@ -24,7 +24,9 @@ async def check(team: TeamContext) -> ProbeResult:
     import asyncio
 
     def _check_sync():
-        cred = ManagedIdentityCredential()
+        import os
+        client_id = os.environ.get("AZURE_CLIENT_ID")
+        cred = ManagedIdentityCredential(client_id=client_id) if client_id else ManagedIdentityCredential()
         net  = NetworkManagementClient(cred, team.subscription_id)
         vnet_name = f"spoke{team.env_id}Vnet"
 

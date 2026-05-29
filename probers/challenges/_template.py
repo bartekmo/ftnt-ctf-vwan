@@ -18,10 +18,12 @@ async def check(team: TeamContext) -> ProbeResult:
     """
     # Example ARM SDK usage:
     #
+    # import os
     # from azure.identity import ManagedIdentityCredential
     # from azure.mgmt.network import NetworkManagementClient
     #
-    # cred = ManagedIdentityCredential()
+    # client_id = os.environ.get("AZURE_CLIENT_ID")
+    # cred = ManagedIdentityCredential(client_id=client_id) if client_id else ManagedIdentityCredential()
     # net  = NetworkManagementClient(cred, team.subscription_id)
     # vnet = net.virtual_networks.get(team.rg_name, f"spoke{team.env_id}Vnet")
     # peered = len(vnet.virtual_network_peerings or []) > 0
