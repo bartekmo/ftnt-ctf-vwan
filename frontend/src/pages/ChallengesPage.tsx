@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { useEffect } from 'react'
 import { CheckCircle2, Lock, ChevronRight, BookOpen } from 'lucide-react'
 import { challenges } from '@/utils/challenges'
 import { useAuthStore } from '@/store/authStore'
@@ -17,6 +18,13 @@ export default function ChallengesPage() {
   const navigate = useNavigate()
 
   // Filter hidden challenges (trainers see all)
+  // Redirect attendees with no team to the team lobby
+  useEffect(() => {
+    if (user && !user.team_id && user.role !== 'trainer') {
+      navigate('/team')
+    }
+  }, [user, navigate])
+
   const visible = challenges.filter(c => c.visible || user?.role === 'trainer')
 
   return (
