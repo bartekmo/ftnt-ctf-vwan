@@ -292,12 +292,12 @@ function NvaRow({ name, pip, onCopy, copied }: {
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text)', fontWeight: 600 }}>{name}</div>
         {pending ? (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', color: 'var(--color-text-dim)', fontFamily: 'var(--font-mono)', marginTop: '0.2rem' }}>
-            <Clock size={10} /> pending deployment {name} {pip}
+            <Clock size={10} /> pending deployment
           </span>
         ) : (
           <a href={`https://${pip}`} target="_blank" rel="noreferrer"
             style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--color-teal)', marginTop: '0.2rem', display: 'block' }}>
-            {name} ↗
+            {pip} ↗
           </a>
         )}
       </div>
