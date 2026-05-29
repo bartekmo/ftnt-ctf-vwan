@@ -16,8 +16,8 @@
 # Hints are defined inside each challenge's MDX frontmatter, not here.
 
 challenges:
-  - id: 01-access-azure
-    title: "Access your Azure environment"
+  - id: 00-access-azure
+    title: "Verify access"
     category: misc
     points: 0
     scored: false

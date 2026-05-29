@@ -1,6 +1,6 @@
 ---
 id: 01-access-azure
-title: "Access your Azure environment"
+title: "Verify access to environment"
 category: misc
 points: 0
 scored: false
@@ -12,16 +12,17 @@ refs:
     url: "https://docs.fortinet.com/document/fortigate-public-cloud/7.4.0/azure-vwan-sd-wan-ngfw-deployment-guide/355051/deploying-vwan-on-azure"
 ---
 
-This is an informational challenge — no scoring, just orientation. Read through it carefully before proceeding.
-
 ## Your lab environment
 
-Each team has a dedicated Azure subscription slice pre-provisioned with the following components:
+Each team has a set of dedicated resources as well as access to global shared systems:
 
-- An **Azure Virtual WAN** with a single hub in **West Europe**
-- Two **FortiGate NVA** instances deployed inside the hub (unlicensed at the start)
+- Shared Azure subscription accessed through your team user account
+- Your dedicated vWAN hub connected to shared global Virtual WAN
 - A **branch site** simulating an on-premises office — FortiGate + Windows desktop
-- A **spoke VNet** that is not yet connected to the hub
+- A regional **spoke VNet** with a simple web server
+- shared FortiManager with dedicated ADOM per each team
+
+You will access all resources using the same username and password with small exception of Azure which requires full principal name ("vwanlabXX@fortinetcloud.onmicrosoft.com").
 
 Your goal over the course of this workshop is to connect all these pieces together into a working SD-WAN deployment.
 
@@ -31,21 +32,16 @@ Use the credentials below to access your Azure environment.
 
 <EnvVar field="azure_username" label="Username" />
 <EnvVar field="azure_password" label="Password" secret />
-<EnvVar field="rg_name" label="Resource group" />
-<EnvVar field="azure_asn" label="Azure vWAN ASN" />
+
+You will need your personal access token distributed by the trainer to log into Azure.
 
 Open the [Azure Portal](https://portal.azure.com) and navigate to your resource group **<EnvVarInline field="rg_name" />** to familiarise yourself with the deployed resources.
 
-## What you will find
+### Log into FortiManager
 
-| Resource | Description |
-|----------|-------------|
-| Virtual WAN | The top-level vWAN resource |
-| Virtual Hub | Hub in West Europe — your FortiGates live here |
-| FortiGate NVA 1 | First hub NVA — needs licensing |
-| FortiGate NVA 2 | Second hub NVA — needs licensing |
-| Branch resource group | Simulated on-premises site (separate RG) |
-| Spoke VNet | Workload network — not yet peered |
+Open the shared FortiManager UI
+
+Log in using your username and password.
 
 ## Access the branch FortiGate
 

@@ -1,0 +1,20 @@
+---
+id: 01-deploy-nvas
+title: "Deploy FortiGates into vWAN Hub"
+category: misc
+points: 100
+scored: true
+prober: check_nva_deployed
+order: 2
+refs:
+  - label: "FortiGate docs - Deploying FortiGate NVAs in a vWAN hub"
+    url: "https://docs.fortinet.com/document/fortigate-public-cloud/7.4.0/azure-vwan-sd-wan-ngfw-deployment-guide/233362/deploying-fortigate-nvas-in-a-vwan-hub"
+
+---
+
+## Deploy NVAs
+
+Use Azure Marketplace to deploy FortiGate NVAs into your vWAN hub. Use "Fortinet FortiGate Security for Azure Virtual WAN" offer from Marketplace 
+and remember to use data from your environment (region, resource group name, etc.) when deploying.
+
+***Important:*** Do use your hub number (eg. "hub01") as FortiGate name prefix and as application name.
