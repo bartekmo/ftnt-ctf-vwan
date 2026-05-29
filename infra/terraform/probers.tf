@@ -88,6 +88,12 @@ resource "azurerm_container_app_job" "probers" {
     }
   }
 
+  lifecycle {
+    ignore_changes = [
+      template[0].container[0].image, # Allow updating the container image without triggering a full replacement
+    ]
+  }
+
   depends_on = [
     azurerm_role_assignment.app_id_acr_pull,
     azurerm_role_assignment.app_id_subscription_reader,

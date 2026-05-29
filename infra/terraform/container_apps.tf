@@ -129,6 +129,12 @@ resource "azurerm_container_app" "api" {
       latest_revision = true
     }
   }
+
+  lifecycle {
+    ignore_changes = [
+      template[0].container[0].image, # Allow updating the container image without triggering a full replacement
+    ]
+  }
 }
 
 resource "azurerm_role_assignment" "api_acr_pull" {
@@ -200,6 +206,12 @@ resource "azurerm_container_app" "frontend" {
       percentage      = 100
       latest_revision = true
     }
+  }
+
+  lifecycle {
+    ignore_changes = [
+      template[0].container[0].image, # Allow updating the container image without triggering a full replacement
+    ]
   }
 }
 
