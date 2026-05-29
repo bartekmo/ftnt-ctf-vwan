@@ -14,7 +14,7 @@ resource "azurerm_container_app_job" "probers" {
     type = "SystemAssigned"
   }
 
-  replica_timeout_seconds = 120   # probers must complete within 2 minutes
+  replica_timeout_in_seconds = 120   # probers must complete within 2 minutes
   replica_retry_limit     = 0     # don't retry — next tick will re-run
 
   # Cron: every minute
