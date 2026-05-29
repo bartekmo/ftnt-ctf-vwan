@@ -10,6 +10,12 @@ variable "location" {
   default     = "westeurope"
 }
 
+variable "prefix" {
+  description = "Prefix for resource names"
+  type        = string
+  default     = "vwanlab"
+}
+
 # ── ACR ───────────────────────────────────────────────────────────────────
 
 variable "acr_name" {

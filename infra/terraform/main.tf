@@ -44,3 +44,9 @@ data "azurerm_resource_group" "ctf" {
 data "azurerm_subscription" "current" {
   subscription_id = var.azure_subscription_id
 }
+
+resource "azurerm_user_assigned_identity" "app_id" {
+  name                = "${var.prefix}-app-id"
+  resource_group_name = data.azurerm_resource_group.ctf.name
+  location            = data.azurerm_resource_group.ctf.location
+}
