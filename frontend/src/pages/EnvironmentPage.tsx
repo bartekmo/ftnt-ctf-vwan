@@ -283,7 +283,7 @@ function EnvRow({ label, value, secret, mono, onCopy, copied }: {
 }
 
 function NvaRow({ name, pip, onCopy, copied }: {
-  name: string; pip: string | null | undefined; onCopy: () => void; copied: boolean
+  name: string | null | undefined; pip: string | null | undefined; onCopy: () => void; copied: boolean
 }) {
   const pending = pip == null || pip === ''
   return (

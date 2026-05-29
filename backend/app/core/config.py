@@ -44,6 +44,9 @@ class AzureSettings(BaseSettings):
     # Index 0 is unused; index N corresponds to env_id N.
     FLEX_TOKENS: str = "{\"hubs\": []}"
 
+    # Azure student account password (same for all teams)
+    AZURE_STUDENT_PASSWORD: str = "StudentPassword123!"
+
     # FortiManager (shared across all teams)
     FMG_SERIAL: str = ""
     FMG_IP: str = ""

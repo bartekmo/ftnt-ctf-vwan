@@ -50,13 +50,12 @@ export default function LabDiagram({ envId, hubName }: Props) {
         const next = { ...prev }
         if (pipsR.status === 'fulfilled') {
           const pips = pipsR.value.data.pips
-          const keys = Object.keys(pips)
-          if (keys.length > 0) {
+          if (pips.length > 0) {
             next.hasNvas  = true
-            next.fgt1Name = keys[0]
-            next.fgt1Pip  = pips[keys[0]]
-            next.fgt2Name = keys[1] ?? null
-            next.fgt2Pip  = keys[1] ? pips[keys[1]] : null
+            next.fgt1Name = pips[0].nva_name
+            next.fgt1Pip  = pips[0].pip
+            next.fgt2Name = pips[1]?.nva_name ?? null
+            next.fgt2Pip  = pips[1]?.pip ?? null
           }
         }
         if (srvR.status === 'fulfilled') {

@@ -76,27 +76,32 @@ async def get_hubs(vwan_name: str) -> list[dict]:
         return []
 
 
-async def get_nva_pips(hub_name: str) -> dict[str, str]:
-    """Return {instanceName: publicIp} for all NVA NICs in the given hub."""
+async def get_nva_pips(hub_name: str) -> list[dict]:
+    """Return list of {name, instance_name, pip} for each NVA NIC in the hub.
+    Sorted by NVA name then instance name for stable ordering."""
     if not azure_settings.AZURE_SUBSCRIPTION_ID:
-        return {}
+        return []
     try:
         def _call():
             return list(_network().network_virtual_appliances.list())
         nvas = await _run(_call)
-        pips: dict[str, str] = {}
-        for nva in nvas:
+        results: list[dict] = []
+        for nva in sorted(nvas, key=lambda n: n.name or ""):
             if not nva.virtual_hub:
                 continue
             if nva.virtual_hub.id.split("/")[8] != hub_name:
                 continue
-            for nic in (nva.virtual_appliance_nics or []):
+            for nic in sorted((nva.virtual_appliance_nics or []), key=lambda n: n.instance_name or ""):
                 if nic.public_ip_address:
-                    pips[nic.instance_name] = nic.public_ip_address
-        return pips
+                    results.append({
+                        "nva_name":     nva.name,
+                        "instance_name": nic.instance_name,
+                        "pip":          nic.public_ip_address,
+                    })
+        return results
     except Exception as exc:
         logger.error("get_nva_pips failed for hub %s: %s", hub_name, exc)
-        return {}
+        return []
 
 
 async def get_spoke_server(index: str) -> dict[str, Optional[str]]:

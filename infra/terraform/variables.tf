@@ -136,3 +136,9 @@ variable "fmg_ip" {
   type        = string
   default     = ""
 }
+
+variable "azure_student_password" {
+  description = "Shared password for all student Azure accounts (vwanlab01@..., vwanlab02@..., etc.)"
+  type        = string
+  default     = "StudentPassword123!"
+}

@@ -66,9 +66,14 @@ class HubDetailOut(BaseModel):
     name: str
     location: str
 
+class NvaPipEntry(BaseModel):
+    nva_name: str
+    instance_name: str
+    pip: str
+
 class PipsOut(BaseModel):
     hub: str
-    pips: dict[str, str]
+    pips: list[NvaPipEntry]
 
 class SrvOut(BaseModel):
     private: Optional[str]
@@ -156,8 +161,8 @@ async def get_hub_pips(
     Attendees may only query their own hub; trainers can query any hub."""
     index = _hub_index(hub_name)
     await _require_own_index(index, user, db)
-    pips = await azure_api.get_nva_pips(hub_name)
-    return PipsOut(hub=hub_name, pips=pips)
+    raw = await azure_api.get_nva_pips(hub_name)
+    return PipsOut(hub=hub_name, pips=[NvaPipEntry(**e) for e in raw])
 
 
 @router.get("/hubs/{hub_name}/srv", response_model=SrvOut)

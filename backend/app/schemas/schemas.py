@@ -114,7 +114,7 @@ class TeamEnvironmentOut(BaseModel):
 
     # Azure credentials
     azure_username: str
-    azure_password: str
+    azure_password: str                 # from AZURE_STUDENT_PASSWORD env var
     rg_name: str                        # per-team resource group name
 
     # BGP ASNs
@@ -126,10 +126,12 @@ class TeamEnvironmentOut(BaseModel):
     sdwan_healthcheck_range: str
 
     # Hub NVAs
-    fgt_nva1_name: str
+    fgt_nva1_name: Optional[str] = None
     fgt_nva1_pip: Optional[str] = None
-    fgt_nva2_name: str
+    fgt_nva2_name: Optional[str] = None
     fgt_nva2_pip: Optional[str] = None
+    url_fgt_nva1: Optional[str] = None
+    url_fgt_nva2: Optional[str] = None
 
     # FortiFlex tokens
     flex_token1: Optional[str] = None
@@ -146,9 +148,13 @@ class TeamEnvironmentOut(BaseModel):
     branch_fgt_pip: Optional[str] = None
     branch_win_pip: Optional[str] = None
 
+    # Branch site URLs
+    url_fgt_branch: Optional[str] = None
+
     # FortiManager (shared)
     fmg_serial: Optional[str] = None
     fmg_ip: Optional[str] = None
+    url_fmg: Optional[str] = None
 
     model_config = {"from_attributes": True}
 

@@ -84,10 +84,12 @@ async def _build_environment(team: Team) -> TeamEnvironmentOut:
     branch = safe(branch, {})
     spoke  = safe(spoke, {})
 
-    # NVA PIPs: keys are instance names like "Nic0_Instance0", "Nic0_Instance1"
-    pip_values = list(pips.values()) if pips else []
-    fgt_nva1_pip = pip_values[0] if len(pip_values) > 0 else None
-    fgt_nva2_pip = pip_values[1] if len(pip_values) > 1 else None
+    # NVAs: sorted list of {nva_name, instance_name, pip} from ARM API
+    nva_list = pips if isinstance(pips, list) else []
+    fgt_nva1_name = nva_list[0]["nva_name"] if len(nva_list) > 0 else None
+    fgt_nva1_pip  = nva_list[0]["pip"]      if len(nva_list) > 0 else None
+    fgt_nva2_name = nva_list[1]["nva_name"] if len(nva_list) > 1 else None
+    fgt_nva2_pip  = nva_list[1]["pip"]      if len(nva_list) > 1 else None
 
     # FortiFlex tokens from env JSON
     flex_token1 = flex_token2 = None
@@ -105,7 +107,7 @@ async def _build_environment(team: Team) -> TeamEnvironmentOut:
         env_id=ns,
         # Azure credentials
         azure_username=f"vwanlab{ns}@fortinetcloud.onmicrosoft.com",
-        azure_password=f"vwanlab{ns}",
+        azure_password=azure_settings.AZURE_STUDENT_PASSWORD,
         rg_name=f"{azure_settings.RG_PREFIX}{ns}{azure_settings.RG_SUFFIX}",
         # ASNs
         fgt_asn=_ASNS[n] if n < len(_ASNS) else 64512 + n,
@@ -113,11 +115,13 @@ async def _build_environment(team: Team) -> TeamEnvironmentOut:
         # Networking
         overlay_network=f"10.200.{n}.0/24",
         sdwan_healthcheck_range=f"172.{n}.0.0/16",
-        # Hub NVAs — live from Azure
-        fgt_nva1_name=f"vwanlab{ns}-hub-fgt1",
+        # Hub NVAs — names and PIPs both live from ARM API
+        fgt_nva1_name=fgt_nva1_name,
         fgt_nva1_pip=fgt_nva1_pip,
-        fgt_nva2_name=f"vwanlab{ns}-hub-fgt2",
+        fgt_nva2_name=fgt_nva2_name,
         fgt_nva2_pip=fgt_nva2_pip,
+        url_fgt_nva1=f"https://{fgt_nva1_pip}" if fgt_nva1_pip else None,
+        url_fgt_nva2=f"https://{fgt_nva2_pip}" if fgt_nva2_pip else None,
         # FortiFlex tokens — from FLEX_TOKENS env var
         flex_token1=flex_token1,
         flex_token2=flex_token2,
@@ -130,9 +134,11 @@ async def _build_environment(team: Team) -> TeamEnvironmentOut:
         branch_cidr=branch.get("branch_cidr"),
         branch_fgt_pip=branch.get("branch_fgt_pip"),
         branch_win_pip=branch.get("branch_win_pip"),
+        url_fgt_branch=f"https://{branch.get('branch_fgt_pip')}" if branch.get("branch_fgt_pip") else None,
         # FortiManager — from env vars
         fmg_serial=azure_settings.FMG_SERIAL or None,
         fmg_ip=azure_settings.FMG_IP or None,
+        url_fmg=f"https://{azure_settings.FMG_IP}" if azure_settings.FMG_IP else None,
     )
 
 

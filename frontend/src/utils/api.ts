@@ -62,10 +62,12 @@ export interface TeamEnvironment {
   azure_asn: number
   overlay_network: string
   sdwan_healthcheck_range: string
-  fgt_nva1_name: string
-  fgt_nva1_pip: string
-  fgt_nva2_name: string
-  fgt_nva2_pip: string
+  fgt_nva1_name: string | null
+  fgt_nva1_pip: string | null
+  fgt_nva2_name: string | null
+  fgt_nva2_pip: string | null
+  url_fgt_nva1: string | null
+  url_fgt_nva2: string | null
   flex_token1: string
   flex_token2: string
   spoke_cidr: string
@@ -77,6 +79,8 @@ export interface TeamEnvironment {
   branch_win_pip: string
   fmg_serial: string
   fmg_ip: string
+  url_fmg: string | null
+  url_fgt_branch: string | null
 }
 
 export interface Challenge {
@@ -199,9 +203,15 @@ export interface FmgOut {
   ip: string
 }
 
+export interface NvaPipEntry {
+  nva_name: string
+  instance_name: string
+  pip: string
+}
+
 export interface PipsOut {
   hub: string
-  pips: Record<string, string>
+  pips: NvaPipEntry[]
 }
 
 export interface BranchOut {

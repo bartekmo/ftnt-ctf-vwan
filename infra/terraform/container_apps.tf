@@ -64,6 +64,10 @@ resource "azurerm_container_app" "api" {
         name  = "ENVIRONMENT"
         value = "production"
       }
+      env {
+        name  = "AZURE_STUDENT_PASSWORD"
+        value = var.azure_student_password
+      }
       # Azure infrastructure settings for live ARM API calls
       env {
         name  = "AZURE_SUBSCRIPTION_ID"
