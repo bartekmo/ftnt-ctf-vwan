@@ -55,6 +55,10 @@ resource "azurerm_container_app_job" "probers" {
       memory = "1Gi"
 
       env {
+        name  = "PYTHONPATH"
+        value = "/app"
+      }
+      env {
         name  = "CTF_API_URL"
         value = "https://ctf-api.internal.${azurerm_container_app_environment.ctf.default_domain}"
       }
