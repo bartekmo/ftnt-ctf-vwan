@@ -125,9 +125,9 @@ export default function EnvironmentPage() {
         </EnvCard>
 
         {/* FortiManager — live data from /api/infra/fmg */}
-        <EnvCard icon={<Server size={18} color="var(--color-teal)" />} title="FortiManager (Shared)">
+        <EnvCard icon={<Server size={18} color="var(--color-teal)" />} title="FortiManager">
           <EnvRow label="Username" value={`vwanlab${env.env_id}`} onCopy={() => copy(`vwanlab${env.env_id}`, 'fmg_user')} copied={copied === 'fmg_user'} mono />
-          <EnvRow label="Serial" value={fmgSerial} mono />
+          <EnvRow label="Serial" value={fmgSerial} mono onCopy={() => copy(fmgSerial, 'fmg_serial')} copied={copied === 'fmg_serial'} />
           <EnvRow label="IP / FQDN" value={fmgIp} mono onCopy={() => copy(fmgIp, 'fmg')} copied={copied === 'fmg'} />
           {fmgIp && (
             <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-border)' }}>
