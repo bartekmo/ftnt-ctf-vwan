@@ -62,7 +62,7 @@ async def _build_environment(team: Team) -> TeamEnvironmentOut:
     ns = f"{n:02d}"
 
     # Hub name follows the pattern used in the lab deployment
-    hub_name = f"vwanlab{ns}-hub"
+    hub_name = f"hub{ns}"
 
     # Fetch live Azure data in parallel
     import asyncio
