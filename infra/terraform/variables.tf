@@ -157,13 +157,3 @@ variable "probers_image" {
   default     = ""
 }
 
-variable "prober_secret" {
-  description = <<-EOT
-    Shared secret for prober-to-API authentication (X-Prober-Key header).
-    Must be set to the same value on both API and prober containers.
-    Generate with: openssl rand -hex 32
-  EOT
-  type      = string
-  sensitive = true
-  default   = ""
-}

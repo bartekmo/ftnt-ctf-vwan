@@ -50,3 +50,11 @@ resource "azurerm_user_assigned_identity" "app_id" {
   resource_group_name = data.azurerm_resource_group.ctf.name
   location            = data.azurerm_resource_group.ctf.location
 }
+# ── Prober shared secret ──────────────────────────────────────────────────
+# Generated once at first apply and stored in Terraform state.
+# The same value is injected into both the API and prober containers.
+
+resource "random_password" "prober_secret" {
+  length  = 64
+  special = false  # hex-safe, no quoting issues in env vars
+}
