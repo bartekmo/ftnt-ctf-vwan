@@ -3,8 +3,18 @@
 # Runs as an ACA Job with a per-minute cron schedule.
 # Uses system-assigned managed identity for ARM API access (same as ctf-api).
 # Calls the CTF API internally via http://ctf-api (ACA internal DNS).
+#
+# The job is only created when probers_image is set — on first apply
+# (before the image is built and pushed) set probers_image = "" and the
+# resource is skipped. Set it after the first image push and re-apply.
+
+locals {
+  probers_enabled = var.probers_image != ""
+}
 
 resource "azurerm_container_app_job" "probers" {
+  count = local.probers_enabled ? 1 : 0
+
   name                         = "ctf-probers"
   resource_group_name          = data.azurerm_resource_group.ctf.name
   location                     = data.azurerm_resource_group.ctf.location
@@ -14,10 +24,9 @@ resource "azurerm_container_app_job" "probers" {
     type = "SystemAssigned"
   }
 
-  replica_timeout_in_seconds = 120   # probers must complete within 2 minutes
-  replica_retry_limit     = 0     # don't retry — next tick will re-run
+  replica_timeout_in_seconds = 120
+  replica_retry_limit        = 0
 
-  # Cron: every minute
   schedule_trigger_config {
     cron_expression          = "* * * * *"
     parallelism              = 1
@@ -64,10 +73,12 @@ resource "azurerm_container_app_job" "probers" {
   }
 }
 
-# Grant the prober job's managed identity Reader on the subscription
-# (same permission as ctf-api — needed for cross-RG ARM calls)
+# Grant the prober job's managed identity Reader on the subscription.
+# Only created when the job exists.
 resource "azurerm_role_assignment" "probers_subscription_reader" {
+  count = local.probers_enabled ? 1 : 0
+
   scope                = "/subscriptions/${var.azure_subscription_id}"
   role_definition_name = "Reader"
-  principal_id         = azurerm_container_app_job.probers.identity[0].principal_id
+  principal_id         = azurerm_container_app_job.probers[0].identity[0].principal_id
 }
