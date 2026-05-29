@@ -77,9 +77,9 @@ async def _build_environment(team: Team) -> TeamEnvironmentOut:
 
     # Safely unpack results — fall back to None if Azure call failed
     def safe(result, default):
-        return result if isinstance(result, (dict, type(None))) else default
+        return result if not isinstance(result, Exception) else default
 
-    pips   = safe(pips, {})
+    pips   = safe(pips, [])
     srv    = safe(srv, {})
     branch = safe(branch, {})
     spoke  = safe(spoke, {})
