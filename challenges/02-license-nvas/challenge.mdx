@@ -27,6 +27,11 @@ Before the FortiGate NVAs can pass traffic, they must be licensed using **FortiF
 
 ## NVA management access
 
+        <EnvCard icon={<Server size={18} color="var(--color-red)" />} title="Hub NVAs (FortiGates)">
+          <NvaRow name={env.fgt_nva1_name} pip={env.fgt_nva1_pip} onCopy={() => copy(env.fgt_nva1_pip, 'fgt1')} copied={copied === 'fgt1'} />
+          <NvaRow name={env.fgt_nva2_name} pip={env.fgt_nva2_pip} onCopy={() => copy(env.fgt_nva2_pip, 'fgt2')} copied={copied === 'fgt2'} />
+        </EnvCard>
+
 Access each FortiGate NVA through its public IP address:
 
 <EnvVar field="fgt_nva1_pip" label="NVA 1 Public IP" />
