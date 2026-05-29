@@ -21,13 +21,22 @@ challenges:
     category: misc
     points: 0
     scored: false
+    order: 0
+    visible: true
+
+  - id: 01-deploy-nvas
+    title: "Deploy the FortiGate NVAs"
+    category: misc
+    points: 150
+    scored: true
+    prober: check_nva_deployed
     order: 1
     visible: true
 
   - id: 02-license-nvas
     title: "License the FortiGate NVAs"
     category: misc
-    points: 100
+    points: 50
     scored: true
     prober: check_nva_licensed
     order: 2
