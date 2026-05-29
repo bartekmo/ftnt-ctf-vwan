@@ -142,3 +142,23 @@ variable "azure_student_password" {
   type        = string
   default     = "StudentPassword123!"
 }
+
+# ── Probers ───────────────────────────────────────────────────────────────
+
+variable "probers_image" {
+  description = "Full image reference for the probers container, e.g. xperts26ctf.azurecr.io/ctf-probers:latest"
+  type        = string
+  default     = ""
+}
+
+variable "prober_api_token" {
+  description = <<-EOT
+    Long-lived trainer-role JWT for probers to authenticate to the CTF API.
+    Generate after first deploy:
+      curl -X POST https://<api-fqdn>/api/auth/login \
+        -d '{"username":"trainer","password":"<pw"}' | jq -r .access_token
+  EOT
+  type      = string
+  sensitive = true
+  default   = ""
+}

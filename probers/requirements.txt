@@ -1,0 +1,4 @@
+azure-identity==1.19.0
+azure-mgmt-network==27.0.0
+httpx==0.28.1
+pydantic-settings==2.6.1
