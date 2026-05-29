@@ -67,11 +67,11 @@ Credentials card. Available in MDX as `hub?.location` if you extend
 
 | Field          | Type   | Source   | Detail |
 |----------------|--------|----------|--------|
-| `fgt_nva1_name`| string | ARM API  | `NetworkVirtualAppliances.list()` filtered by hub name `vwanlab{n}-hub`, sorted by NVA name, entry [0].name |
-| `fgt_nva1_pip` | string | ARM API  | Same call → NIC `public_ip_address`, entry [0] |
+| `fgt_nva1_name`| string | ARM API  | `NetworkVirtualAppliances.list()` filtered by hub `vwanlab{n}-hub`, sorted by NVA name then NIC instance name → entry [0].instance_name |
+| `fgt_nva1_pip` | string | ARM API  | Same call → entry [0].pip (NIC `public_ip_address`) |
 | `url_fgt_nva1` | string | Calculated | `https://{fgt_nva1_pip}` |
-| `fgt_nva2_name`| string | ARM API  | Same call, entry [1].name |
-| `fgt_nva2_pip` | string | ARM API  | Same call → NIC `public_ip_address`, entry [1] |
+| `fgt_nva2_name`| string | ARM API  | Same call → entry [1].instance_name |
+| `fgt_nva2_pip` | string | ARM API  | Same call → entry [1].pip |
 | `url_fgt_nva2` | string | Calculated | `https://{fgt_nva2_pip}` |
 
 ---
