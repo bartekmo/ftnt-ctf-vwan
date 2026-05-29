@@ -7,7 +7,7 @@ from sqlalchemy.orm import selectinload
 from app.db.session import get_db
 from app.models.models import User, Team, CTFEvent, CTFStatus, ChallengeSolve
 from app.schemas.schemas import ScoreboardOut, ScoreboardEntry, CTFEventOut, CTFEventUpdate, SolveCreate, SolveOut
-from app.api.deps import get_current_user, get_current_trainer
+from app.api.deps import get_current_user, get_current_trainer, require_prober
 from app.core.ws_manager import manager
 
 router = APIRouter(tags=["scoreboard"])
@@ -143,7 +143,7 @@ async def reset_event(
 async def record_solve(
     body: SolveCreate,
     db: AsyncSession = Depends(get_db),
-    _trainer: User = Depends(get_current_trainer),
+    _: None = Depends(require_prober),
 ):
     """Endpoint used by probers to record a verified solve."""
     team = (await db.execute(select(Team).where(Team.id == body.team_id))).scalar_one_or_none()
@@ -186,7 +186,7 @@ async def record_solve(
 @router.get("/solves", response_model=list[SolveOut])
 async def list_solves(
     db: AsyncSession = Depends(get_db),
-    _trainer: User = Depends(get_current_trainer),
+    _: None = Depends(require_prober),
 ):
     result = await db.execute(
         select(ChallengeSolve)

@@ -49,6 +49,13 @@ resource "azurerm_container_app" "api" {
     name  = "flex-tokens"
     value = var.flex_tokens
   }
+  dynamic "secret" {
+    for_each = var.prober_secret != "" ? [1] : []
+    content {
+      name  = "prober-secret"
+      value = var.prober_secret
+    }
+  }
 
   template {
     min_replicas = 1
@@ -96,6 +103,13 @@ resource "azurerm_container_app" "api" {
       env {
         name  = "FMG_IP"
         value = var.fmg_ip
+      }
+      dynamic "env" {
+        for_each = var.prober_secret != "" ? [1] : []
+        content {
+          name        = "PROBER_SECRET"
+          secret_name = "prober-secret"
+        }
       }
       # Sensitive: FortiFlex tokens JSON stored as a Container Apps secret
       env {

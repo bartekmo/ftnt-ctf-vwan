@@ -19,14 +19,14 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-CTF_API_URL   = os.environ.get("CTF_API_URL", "http://ctf-api")
-CTF_API_TOKEN = os.environ.get("CTF_API_TOKEN", "")
+CTF_API_URL    = os.environ.get("CTF_API_URL", "http://ctf-api")
+PROBER_SECRET  = os.environ.get("PROBER_SECRET", "")
 
 
 def _headers() -> dict:
     return {
-        "Authorization": f"Bearer {CTF_API_TOKEN}",
-        "Content-Type":  "application/json",
+        "X-Prober-Key": PROBER_SECRET,
+        "Content-Type": "application/json",
     }
 
 

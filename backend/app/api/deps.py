@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Header, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -43,3 +43,18 @@ async def get_optional_user(
         return result.scalar_one_or_none()
     except Exception:
         return None
+
+
+def require_prober(x_prober_key: str | None = Header(default=None)) -> None:
+    """Validate the shared prober secret sent in X-Prober-Key header."""
+    from app.core.config import settings
+    if not settings.PROBER_SECRET:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="PROBER_SECRET not configured on API",
+        )
+    if x_prober_key != settings.PROBER_SECRET:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid prober key",
+        )

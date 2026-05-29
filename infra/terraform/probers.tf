@@ -40,10 +40,10 @@ resource "azurerm_container_app_job" "probers" {
   }
 
   dynamic "secret" {
-    for_each = var.prober_api_token != "" ? [1] : []
+    for_each = var.prober_secret != "" ? [1] : []
     content {
-      name  = "ctf-api-token"
-      value = var.prober_api_token
+      name  = "prober-secret"
+      value = var.prober_secret
     }
   }
 
@@ -63,10 +63,10 @@ resource "azurerm_container_app_job" "probers" {
         value = "https://ctf-api.internal.${azurerm_container_app_environment.ctf.default_domain}"
       }
       dynamic "env" {
-        for_each = var.prober_api_token != "" ? [1] : []
+        for_each = var.prober_secret != "" ? [1] : []
         content {
-          name        = "CTF_API_TOKEN"
-          secret_name = "ctf-api-token"
+          name        = "PROBER_SECRET"
+          secret_name = "prober-secret"
         }
       }
       env {

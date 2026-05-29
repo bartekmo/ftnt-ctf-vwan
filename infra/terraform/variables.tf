@@ -157,12 +157,11 @@ variable "probers_image" {
   default     = ""
 }
 
-variable "prober_api_token" {
+variable "prober_secret" {
   description = <<-EOT
-    Long-lived trainer-role JWT for probers to authenticate to the CTF API.
-    Generate after first deploy:
-      curl -X POST https://<api-fqdn>/api/auth/login \
-        -d '{"username":"trainer","password":"<pw"}' | jq -r .access_token
+    Shared secret for prober-to-API authentication (X-Prober-Key header).
+    Must be set to the same value on both API and prober containers.
+    Generate with: openssl rand -hex 32
   EOT
   type      = string
   sensitive = true

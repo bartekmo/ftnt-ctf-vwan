@@ -39,3 +39,7 @@ flex_tokens = "{\"hubs\": []}"
 
 # Shared password for all student Azure accounts
 azure_student_password = "StudentPassword123!"
+
+# Prober shared secret — same value on API and prober containers
+# Generate: openssl rand -hex 32
+# prober_secret = ""

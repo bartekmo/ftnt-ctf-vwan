@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     CTF_NAME: str = "Xperts26 vWAN CTF"
     FIRST_BLOOD_BONUS: int = 50
 
+    # Shared secret for prober-to-API authentication.
+    # Set the same value as PROBER_SECRET on the prober container.
+    # Generate with: openssl rand -hex 32
+    PROBER_SECRET: str = ""
+
     @property
     def cors_origins_list(self) -> List[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",")]
