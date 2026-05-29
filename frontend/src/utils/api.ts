@@ -204,7 +204,6 @@ export interface FmgOut {
 }
 
 export interface NvaPipEntry {
-  nva_name: string
   instance_name: string
   pip: string
 }

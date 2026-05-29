@@ -84,12 +84,12 @@ async def _build_environment(team: Team) -> TeamEnvironmentOut:
     branch = safe(branch, {})
     spoke  = safe(spoke, {})
 
-    # NVAs: sorted list of {nva_name, instance_name, pip} from ARM API
+    # NVAs: sorted list of {instance_name, pip} from ARM API
     nva_list = pips if isinstance(pips, list) else []
-    fgt_nva1_name = nva_list[0]["nva_name"] if len(nva_list) > 0 else None
-    fgt_nva1_pip  = nva_list[0]["pip"]      if len(nva_list) > 0 else None
-    fgt_nva2_name = nva_list[1]["nva_name"] if len(nva_list) > 1 else None
-    fgt_nva2_pip  = nva_list[1]["pip"]      if len(nva_list) > 1 else None
+    fgt_nva1_name = nva_list[0]["instance_name"] if len(nva_list) > 0 else None
+    fgt_nva1_pip  = nva_list[0]["pip"]            if len(nva_list) > 0 else None
+    fgt_nva2_name = nva_list[1]["instance_name"] if len(nva_list) > 1 else None
+    fgt_nva2_pip  = nva_list[1]["pip"]            if len(nva_list) > 1 else None
 
     # FortiFlex tokens from env JSON
     flex_token1 = flex_token2 = None

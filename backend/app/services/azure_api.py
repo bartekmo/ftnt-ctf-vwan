@@ -77,7 +77,7 @@ async def get_hubs(vwan_name: str) -> list[dict]:
 
 
 async def get_nva_pips(hub_name: str) -> list[dict]:
-    """Return list of {name, instance_name, pip} for each NVA NIC in the hub.
+    """Return list of {instance_name, pip} for each NVA NIC in the hub.
     Sorted by NVA name then instance name for stable ordering."""
     if not azure_settings.AZURE_SUBSCRIPTION_ID:
         return []
@@ -94,7 +94,6 @@ async def get_nva_pips(hub_name: str) -> list[dict]:
             for nic in sorted((nva.virtual_appliance_nics or []), key=lambda n: n.instance_name or ""):
                 if nic.public_ip_address:
                     results.append({
-                        "nva_name":     nva.name,
                         "instance_name": nic.instance_name,
                         "pip":          nic.public_ip_address,
                     })

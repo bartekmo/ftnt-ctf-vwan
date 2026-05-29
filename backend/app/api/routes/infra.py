@@ -67,7 +67,6 @@ class HubDetailOut(BaseModel):
     location: str
 
 class NvaPipEntry(BaseModel):
-    nva_name: str
     instance_name: str
     pip: str
 

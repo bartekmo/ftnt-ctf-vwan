@@ -52,9 +52,9 @@ export default function LabDiagram({ envId, hubName }: Props) {
           const pips = pipsR.value.data.pips
           if (pips.length > 0) {
             next.hasNvas  = true
-            next.fgt1Name = pips[0].nva_name
+            next.fgt1Name = pips[0].instance_name
             next.fgt1Pip  = pips[0].pip
-            next.fgt2Name = pips[1]?.nva_name ?? null
+            next.fgt2Name = pips[1]?.instance_name ?? null
             next.fgt2Pip  = pips[1]?.pip ?? null
           }
         }
