@@ -31,8 +31,11 @@ async def lifespan(app: FastAPI):
     logger.info("  FLEX_TOKENS set       : %s", azure_settings.FLEX_TOKENS != '{"hubs": []}')
     logger.info("======================")
 
-    # create_all is idempotent — safe to run on every startup.
+    # Drop and recreate all tables on startup.
+    # Safe for this ephemeral workshop platform — data is never carried
+    # across deployments. Ensures schema always matches current models.
     async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
     yield
     await engine.dispose()

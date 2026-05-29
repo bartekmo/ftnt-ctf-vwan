@@ -58,10 +58,15 @@ async def get_scoreboard(db: AsyncSession = Depends(get_db)):
 
 
 @router.websocket("/ws/scoreboard")
-async def scoreboard_ws(websocket: WebSocket, db: AsyncSession = Depends(get_db)):
+async def scoreboard_ws(websocket: WebSocket):
+    # Do not use Depends(get_db) on WebSocket routes — the session context
+    # manager exits after the first yield, breaking long-lived connections.
+    # Create a dedicated session for the lifetime of this connection instead.
+    from app.db.session import AsyncSessionLocal
     await manager.connect(websocket, "scoreboard")
     try:
-        scoreboard = await build_scoreboard(db)
+        async with AsyncSessionLocal() as db:
+            scoreboard = await build_scoreboard(db)
         await websocket.send_json({"type": "scoreboard_update", "data": scoreboard.model_dump(mode="json")})
         while True:
             await websocket.receive_text()
