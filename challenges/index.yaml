@@ -38,7 +38,7 @@ challenges:
     category: misc
     points: 50
     scored: true
-    prober: check_nva_licensed
+    prober: check_nva_deployed
     order: 2
     visible: true
 

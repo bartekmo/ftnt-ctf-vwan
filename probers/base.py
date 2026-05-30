@@ -29,3 +29,7 @@ class ProbeResult:
     """Result returned by a prober's check() function."""
     solved:  bool
     detail:  str = ""        # human-readable reason, logged on failure
+
+
+# Type alias for check_all return value: {team_id: ProbeResult}
+TeamResults = dict[int, ProbeResult]

@@ -26,7 +26,7 @@ from typing import Optional
 
 import yaml
 
-from .base import TeamContext, ProbeResult
+from .base import TeamContext, ProbeResult, TeamResults
 from .scoring import calculate_points
 from . import api_client
 
@@ -59,13 +59,6 @@ def load_scored_challenges() -> list[dict]:
     return [c for c in data.get("challenges", []) if c.get("scored") and c.get("prober")]
 
 
-def load_prober(prober_name: str):
-    """Dynamically import a prober module from probers/challenges/<name>.py"""
-    module = importlib.import_module(f".challenges.{prober_name}", package="probers")
-    if not hasattr(module, "check"):
-        raise ImportError(f"Prober {prober_name} has no check() function")
-    return module.check
-
 
 # ── Team context builder ──────────────────────────────────────────────────
 
@@ -94,11 +87,17 @@ async def probe_challenge(challenge: dict, teams: list[dict]) -> None:
     challenge_title = challenge["title"]
     base_points     = challenge.get("points", 100)
 
-    # Load the prober function
+    # Load the prober module — supports check(team) and check_all(teams) interfaces
     try:
-        check_fn = load_prober(prober_name)
+        module = importlib.import_module(f".challenges.{prober_name}", package="probers")
     except (ImportError, ModuleNotFoundError) as e:
         logger.error("Cannot load prober '%s': %s", prober_name, e)
+        return
+
+    check_all_fn = getattr(module, "check_all", None)
+    check_fn     = getattr(module, "check", None)
+    if not check_all_fn and not check_fn:
+        logger.error("Prober '%s' has no check() or check_all() function", prober_name)
         return
 
     # Fetch existing solves to skip teams that already completed this challenge
@@ -123,20 +122,38 @@ async def probe_challenge(challenge: dict, teams: list[dict]) -> None:
 
     logger.info("Probing '%s' for %d unsolved teams", challenge_title, len(unsolved_teams))
 
-    for team in unsolved_teams:
-        ctx = build_team_context(team)
-        if not ctx:
-            logger.warning("Team %d has no env_id — skipping", team["id"])
-            continue
+    # Build results dict: {team_id: ProbeResult}
+    # check_all makes one ARM call and returns results for all teams at once.
+    # check is called once per team (original per-team loop).
+    results: TeamResults = {}
 
+    if check_all_fn:
+        ctxs = {t["id"]: build_team_context(t) for t in unsolved_teams}
+        ctxs = {tid: ctx for tid, ctx in ctxs.items() if ctx}
         try:
-            result: ProbeResult = await check_fn(ctx)
+            results = await check_all_fn(list(ctxs.values()))
         except Exception as e:
-            logger.error("Prober '%s' raised for team %s: %s", prober_name, ctx.team_name, e)
+            logger.error("Prober '%s' check_all raised: %s", prober_name, e)
+            return
+    else:
+        for team in unsolved_teams:
+            ctx = build_team_context(team)
+            if not ctx:
+                logger.warning("Team %d has no env_id — skipping", team["id"])
+                continue
+            try:
+                results[ctx.team_id] = await check_fn(ctx)
+            except Exception as e:
+                logger.error("Prober '%s' raised for team %s: %s", prober_name, ctx.team_name, e)
+                results[ctx.team_id] = ProbeResult(solved=False, detail=str(e))
+
+    for team in unsolved_teams:
+        result = results.get(team["id"])
+        if result is None:
             continue
 
         if not result.solved:
-            logger.debug("  ✗ %s: %s", ctx.team_name, result.detail or "not solved")
+            logger.debug("  ✗ %s: %s", team.get("name"), result.detail or "not solved")
             continue
 
         # Solved — calculate score and record
@@ -150,7 +167,7 @@ async def probe_challenge(challenge: dict, teams: list[dict]) -> None:
 
         logger.info(
             "  ✓ %s solved '%s' — pos=%d base=%d bonus=%d total=%d%s",
-            ctx.team_name, challenge_title, solve_position,
+            team.get("name"), challenge_title, solve_position,
             base_points, bonus, total_points,
             " 🩸 FIRST BLOOD" if is_first_blood else "",
         )
@@ -159,19 +176,19 @@ async def probe_challenge(challenge: dict, teams: list[dict]) -> None:
             await api_client.record_solve(
                 challenge_slug  = challenge_slug,
                 challenge_title = challenge_title,
-                team_id         = ctx.team_id,
+                team_id         = team["id"],
                 points_awarded  = total_points,
                 is_first_blood  = is_first_blood,
             )
         except Exception as e:
-            logger.error("Failed to record solve for team %s: %s", ctx.team_name, e)
+            logger.error("Failed to record solve for team %s: %s", team.get("name"), e)
             continue
 
         # Update tracking for subsequent teams in this same tick
         if is_first_blood:
             first_blood_at = now
         solve_position += 1
-        solved_team_ids.add(ctx.team_id)
+        solved_team_ids.add(team["id"])
 
 
 # ── Main ──────────────────────────────────────────────────────────────────
