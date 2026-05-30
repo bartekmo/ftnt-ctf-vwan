@@ -117,7 +117,7 @@ async def probe_challenge(challenge: dict, teams: list[dict]) -> None:
 
     unsolved_teams = [t for t in teams if t["id"] not in solved_team_ids]
     if not unsolved_teams:
-        logger.debug("All teams solved '%s' — nothing to check", title)
+        logger.debug("All teams solved '%s' — nothing to check", challenge_title)
         return
 
     logger.info("Probing '%s' for %d unsolved teams", challenge_title, len(unsolved_teams))
