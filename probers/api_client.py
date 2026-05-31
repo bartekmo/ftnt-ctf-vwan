@@ -75,10 +75,22 @@ async def record_solve(
         )
         if resp.status_code == 409:
             # Already recorded (race condition between runner ticks) — not an error
-            logger.debug("Solve already recorded for team %d challenge %d", team_id, challenge_id)
+            logger.debug("Solve already recorded for team %d", team_id)
             return {}
         resp.raise_for_status()
         return resp.json()
+
+
+async def sync_warnings(team_id: int, prober_name: str, warnings: list) -> None:
+    """Sync current warnings for a team+prober. Clears resolved warnings automatically."""
+    payload = {
+        "team_id":     team_id,
+        "prober_name": prober_name,
+        "warnings":    [{"warning_key": w.key, "message": w.message} for w in warnings],
+    }
+    async with httpx.AsyncClient(base_url=CTF_API_URL, timeout=10) as client:
+        resp = await client.post("/api/warnings/sync", headers=_headers(), json=payload)
+        resp.raise_for_status()
 
 
 async def get_event_status() -> str:

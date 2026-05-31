@@ -6,8 +6,8 @@ from sqlalchemy.orm import selectinload
 
 from app.db.session import get_db
 from app.models.models import User, Team, CTFEvent, CTFStatus, ChallengeSolve
-from app.schemas.schemas import ScoreboardOut, ScoreboardEntry, CTFEventOut, CTFEventUpdate, SolveCreate, SolveOut
-from app.api.deps import get_current_user, get_current_trainer, require_prober
+from app.schemas.schemas import ScoreboardOut, ScoreboardEntry, CTFEventOut, CTFEventUpdate, SolveCreate, SolveOut, WarningSyncRequest, WarningOut
+from app.api.deps import get_current_user, get_current_trainer, require_prober, require_prober
 from app.core.ws_manager import manager
 
 router = APIRouter(tags=["scoreboard"])
@@ -210,4 +210,107 @@ async def list_solves(
 
 
 # Import here to avoid circular at module level
-from app.models.models import HintUse  # noqa
+from app.models.models import HintUse, ProberWarning  # noqa
+
+
+# ---------------------------------------------------------------------------
+# Prober warnings
+# ---------------------------------------------------------------------------
+
+@router.post("/warnings/sync", status_code=200)
+async def sync_warnings(
+    body: WarningSyncRequest,
+    db: AsyncSession = Depends(get_db),
+    _: None = Depends(require_prober),
+):
+    """Upsert current warnings for one team+prober. Clears any warnings not in the list."""
+    from app.schemas.schemas import WarningSyncRequest as _  # noqa already imported
+    from sqlalchemy.dialects.postgresql import insert as pg_insert
+
+    # Delete warnings that are no longer active
+    active_keys = {w.warning_key for w in body.warnings}
+    existing = await db.execute(
+        select(ProberWarning).where(
+            ProberWarning.team_id == body.team_id,
+            ProberWarning.prober_name == body.prober_name,
+        )
+    )
+    for w in existing.scalars().all():
+        if w.warning_key not in active_keys:
+            await db.delete(w)
+
+    # Upsert active warnings
+    for w in body.warnings:
+        existing_w = await db.execute(
+            select(ProberWarning).where(
+                ProberWarning.team_id == body.team_id,
+                ProberWarning.prober_name == body.prober_name,
+                ProberWarning.warning_key == w.warning_key,
+            )
+        )
+        row = existing_w.scalar_one_or_none()
+        if row:
+            row.message = w.message
+            row.updated_at = datetime.now(timezone.utc)
+        else:
+            db.add(ProberWarning(
+                team_id=body.team_id,
+                prober_name=body.prober_name,
+                warning_key=w.warning_key,
+                message=w.message,
+            ))
+
+    return {"synced": len(body.warnings)}
+
+
+@router.get("/warnings", response_model=list[WarningOut])
+async def get_warnings(
+    db: AsyncSession = Depends(get_db),
+    _trainer: User = Depends(get_current_trainer),
+):
+    """Return all current prober warnings."""
+    result = await db.execute(select(ProberWarning).order_by(ProberWarning.team_id, ProberWarning.prober_name))
+    return result.scalars().all()
+
+
+# ---------------------------------------------------------------------------
+# Progress endpoint (trainer — full state for the Progress page)
+# ---------------------------------------------------------------------------
+
+@router.get("/progress")
+async def get_progress(
+    db: AsyncSession = Depends(get_db),
+    _trainer: User = Depends(get_current_trainer),
+):
+    """Return per-team solve state and warnings for the trainer Progress page."""
+    from sqlalchemy.orm import selectinload
+
+    teams_result = await db.execute(
+        select(Team).options(
+            selectinload(Team.members),
+            selectinload(Team.solves),
+            selectinload(Team.hint_uses),
+            selectinload(Team.warnings),
+        )
+    )
+    teams = teams_result.scalars().all()
+
+    out = []
+    for team in teams:
+        solve_pts  = sum(s.points_awarded for s in team.solves)
+        hint_cost  = sum(h.points_cost for h in team.hint_uses)
+        solves_map = {s.challenge_slug: {"solved_at": s.solved_at.isoformat(), "points": s.points_awarded} for s in team.solves}
+        warnings_by_prober: dict[str, list[dict]] = {}
+        for w in team.warnings:
+            warnings_by_prober.setdefault(w.prober_name, []).append({"key": w.warning_key, "message": w.message})
+
+        out.append({
+            "team_id":   team.id,
+            "team_name": team.name,
+            "env_id":    team.env_id_str,
+            "score":     max(0, solve_pts - hint_cost),
+            "solves":    solves_map,
+            "warnings":  warnings_by_prober,
+        })
+
+    return out

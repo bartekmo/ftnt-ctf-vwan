@@ -157,3 +157,9 @@ variable "probers_image" {
   default     = ""
 }
 
+
+variable "fgt_firmware_version" {
+  description = "Expected FortiGate firmware version on hub NVAs. Probers warn if the actual version differs."
+  type        = string
+  default     = "7.6.6"
+}

@@ -207,7 +207,21 @@ export interface SpokeOut {
   spoke_peered: boolean
 }
 
+export interface ProgressTeam {
+  team_id:   number
+  team_name: string
+  env_id:    string | null
+  score:     number
+  solves:    Record<string, { solved_at: string; points: number }>
+  warnings:  Record<string, Array<{ key: string; message: string }>>
+}
+
+export const progressApi = {
+  progress: () => api.get<ProgressTeam[]>('/progress'),
+}
+
 export const infraApi = {
+  listHubs: () => api.get<{ hubs: HubDetailOut[] }>('/infra/hubs'),
   fmg:     ()                  => api.get<FmgOut>('/infra/fmg'),
   srv:     (hubName: string)   => api.get<SrvOut>(`/infra/hubs/${hubName}/srv`),
   hub:     (hubName: string)   => api.get<HubDetailOut>(`/infra/hubs/${hubName}`),

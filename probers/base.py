@@ -25,10 +25,22 @@ class TeamContext:
 
 
 @dataclass
+class Warning:
+    """A warning emitted by a prober. Persisted per team+prober+key."""
+    key:     str    # stable identifier, e.g. "asn_mismatch"
+    message: str    # human-readable text shown in the UI
+
+
+@dataclass
 class ProbeResult:
     """Result returned by a prober's check() function."""
-    solved:  bool
-    detail:  str = ""        # human-readable reason, logged on failure
+    solved:   bool
+    detail:   str = ""           # human-readable reason, logged on failure
+    warnings: list = None        # list[Warning] — active warnings for this team
+
+    def __post_init__(self):
+        if self.warnings is None:
+            self.warnings = []
 
 
 # Type alias for check_all return value: {team_id: ProbeResult}

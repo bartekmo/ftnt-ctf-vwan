@@ -62,6 +62,7 @@ class Team(Base):
     members:   Mapped[List["User"]]           = relationship("User", back_populates="team")
     solves:    Mapped[List["ChallengeSolve"]]  = relationship("ChallengeSolve", back_populates="team")
     hint_uses: Mapped[List["HintUse"]]         = relationship("HintUse", back_populates="team")
+    warnings:  Mapped[List["ProberWarning"]]    = relationship("ProberWarning", back_populates="team")
 
     @property
     def score(self) -> int:
@@ -89,6 +90,26 @@ class User(Base):
     created_at:      Mapped[datetime]      = mapped_column(DateTime(timezone=True), default=utcnow)
 
     team: Mapped[Optional["Team"]] = relationship("Team", back_populates="members")
+
+
+# ---------------------------------------------------------------------------
+# Prober warnings
+# Warnings are upserted by probers each run — if the condition clears,
+# the warning is deleted. Keyed on (team_id, prober_name, warning_key).
+# ---------------------------------------------------------------------------
+
+class ProberWarning(Base):
+    __tablename__ = "prober_warnings"
+    __table_args__ = (UniqueConstraint("team_id", "prober_name", "warning_key"),)
+
+    id:           Mapped[int]      = mapped_column(Integer, primary_key=True)
+    team_id:      Mapped[int]      = mapped_column(ForeignKey("teams.id", ondelete="CASCADE"), index=True)
+    prober_name:  Mapped[str]      = mapped_column(String(200))   # e.g. "check_nva_deployed"
+    warning_key:  Mapped[str]      = mapped_column(String(200))   # stable identifier, e.g. "asn_mismatch"
+    message:      Mapped[str]      = mapped_column(String(500))   # human-readable warning text
+    updated_at:   Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    team: Mapped["Team"] = relationship("Team", back_populates="warnings")
 
 
 # ---------------------------------------------------------------------------

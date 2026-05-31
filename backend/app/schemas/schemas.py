@@ -169,6 +169,32 @@ class MoveUserRequest(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Prober warnings
+# ---------------------------------------------------------------------------
+
+class WarningIn(BaseModel):
+    """Sent by prober to upsert a warning."""
+    warning_key: str
+    message:     str
+
+class WarningSyncRequest(BaseModel):
+    """Prober sends the full current warning set for one team+prober.
+    Any existing warnings NOT in this list are deleted (condition cleared)."""
+    team_id:      int
+    prober_name:  str
+    warnings:     list[WarningIn]   # empty list = clear all warnings
+
+class WarningOut(BaseModel):
+    id:          int
+    team_id:     int
+    prober_name: str
+    warning_key: str
+    message:     str
+    updated_at:  datetime
+    model_config = {"from_attributes": True}
+
+
+# ---------------------------------------------------------------------------
 # Hints  (unlock state only — content lives in MDX frontmatter)
 # ---------------------------------------------------------------------------
 

@@ -60,6 +60,10 @@ resource "azurerm_container_app_job" "probers" {
         value = azurerm_user_assigned_identity.app_id.client_id
       }
       env {
+        name  = "FGT_FIRMWARE_VERSION"
+        value = var.fgt_firmware_version
+      }
+      env {
         name  = "CTF_API_URL"
         value = "https://ctf-api.internal.${azurerm_container_app_environment.ctf.default_domain}"
       }

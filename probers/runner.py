@@ -152,6 +152,19 @@ async def probe_challenge(challenge: dict, teams: list[dict]) -> None:
         if result is None:
             continue
 
+        # Always sync warnings regardless of solved state
+        if result.warnings:
+            try:
+                await api_client.sync_warnings(team["id"], prober_name, result.warnings)
+            except Exception as e:
+                logger.warning("Failed to sync warnings for team %s: %s", team.get("name"), e)
+        else:
+            # Clear any previous warnings for this team+prober
+            try:
+                await api_client.sync_warnings(team["id"], prober_name, [])
+            except Exception as e:
+                logger.warning("Failed to clear warnings for team %s: %s", team.get("name"), e)
+
         if not result.solved:
             logger.debug("  ✗ %s: %s", team.get("name"), result.detail or "not solved")
             continue

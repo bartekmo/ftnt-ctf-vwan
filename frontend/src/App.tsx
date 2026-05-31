@@ -8,6 +8,7 @@ import ChallengeDetailPage from '@/pages/ChallengeDetailPage'
 import EnvironmentPage from '@/pages/EnvironmentPage'
 import ScoreboardPage from '@/pages/ScoreboardPage'
 import TrainerPage from '@/pages/TrainerPage'
+import ProgressPage from '@/pages/ProgressPage'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user } = useAuthStore()
@@ -45,6 +46,9 @@ export default function App() {
           } />
           <Route path="/trainer" element={
             <RequireTrainer><TrainerPage /></RequireTrainer>
+          } />
+          <Route path="/progress" element={
+            <RequireTrainer><ProgressPage /></RequireTrainer>
           } />
 
           <Route path="/" element={<Navigate to="/challenges" replace />} />
