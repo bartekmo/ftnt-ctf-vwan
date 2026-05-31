@@ -9,6 +9,7 @@ const SCORED = challenges.filter(c => c.scored)
 // Probers that exist (have a prober file) — used to distinguish "not solved" from "not implemented"
 const IMPLEMENTED_PROBERS = new Set([
   'check_nva_deployed',
+  'check_nva_licensed',
   'check_spoke_peered',
 ])
 

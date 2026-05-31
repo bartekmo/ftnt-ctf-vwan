@@ -163,3 +163,16 @@ variable "fgt_firmware_version" {
   type        = string
   default     = "7.6.6"
 }
+
+variable "fmg_user" {
+  description = "FortiManager API username for prober authentication"
+  type        = string
+  default     = ""
+}
+
+variable "fmg_password" {
+  description = "FortiManager API password for prober authentication"
+  type        = string
+  sensitive   = true
+  default     = ""
+}

@@ -64,6 +64,18 @@ resource "azurerm_container_app_job" "probers" {
         value = var.fgt_firmware_version
       }
       env {
+        name  = "FMG_IP"
+        value = var.fmg_ip
+      }
+      env {
+        name  = "FMG_USER"
+        value = var.fmg_user
+      }
+      env {
+        name  = "FMG_PASSWORD"
+        value = var.fmg_password
+      }
+      env {
         name  = "CTF_API_URL"
         value = "https://ctf-api.internal.${azurerm_container_app_environment.ctf.default_domain}"
       }
