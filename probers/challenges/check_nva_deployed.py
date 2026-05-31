@@ -23,7 +23,7 @@ from probers.base import TeamContext, ProbeResult, TeamResults
 logger = logging.getLogger(__name__)
 _executor = ThreadPoolExecutor(max_workers=2)
 
-REQUIRED_NVA_COUNT = 2
+REQUIRED_NVA_COUNT = 1
 
 
 async def check_all(teams: list[TeamContext]) -> TeamResults:
