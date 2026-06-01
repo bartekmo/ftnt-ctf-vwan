@@ -42,38 +42,47 @@ challenges:
     order: 2
     visible: true
 
-  - id: 03-branch-vpn
+  - id: 03-configure-bgp
+    title: "Configure BGP on the FortiGate NVAs"
+    category: routing
+    points: 150
+    scored: true
+    prober: check_nva_bgp
+    order: 3
+    visible: true
+
+  - id: 04-branch-vpn
     title: "Establish the Branch VPN tunnel"
     category: vpn
     points: 150
     scored: true
     prober: check_branch_vpn
-    order: 3
+    order: 4
     visible: true
 
-  - id: 04-branch-bgp
+  - id: 05-branch-bgp
     title: "Configure Branch BGP"
     category: routing
     points: 150
     scored: true
     prober: check_branch_bgp
-    order: 4
+    order: 5
     visible: true
 
-  - id: 05-spoke-peering
+  - id: 06-spoke-peering
     title: "Peer the Spoke VNet"
     category: networking
     points: 100
     scored: true
     prober: check_spoke_peered
-    order: 5
+    order: 6
     visible: true
 
-  - id: 06-spoke-routing
+  - id: 07-spoke-routing
     title: "Route Spoke traffic through the hub"
     category: routing
     points: 200
     scored: true
     prober: check_spoke_routing
-    order: 6
+    order: 7
     visible: true

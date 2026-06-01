@@ -1,0 +1,113 @@
+---
+id: 03-configure-bgp
+title: "Configure BGP on the FortiGate NVAs"
+category: routing
+points: 150
+scored: true
+prober: check_nva_bgp
+order: 3
+hints:
+  - text: "In the Azure portal, navigate to your Virtual Hub → Network Virtual Appliances. Click on one of the NVAs and open its management URL. You need to configure BGP neighbors pointing to the hub's BGP peer addresses."
+    cost: 15
+  - text: "Go to Network → BGP on the FortiGate. Set the Local AS to the value shown in your environment. Add two BGP neighbors — one for each hub BGP peer IP address — with remote AS 65515."
+    cost: 25
+  - text: "The hub BGP peer IP addresses are shown in the Azure portal under Virtual Hub → BGP Peers. They are typically in the 192.168.x.x range. Make sure to configure identical settings on both NVAs."
+    cost: 20
+refs:
+  - label: "Configuring static routes and enabling BGP on FortiGate NVAs"
+    url: "https://docs.fortinet.com/document/fortigate-public-cloud/7.4.0/azure-vwan-sd-wan-ngfw-deployment-guide/860717/configuring-static-routes-and-enabling-bgp-on-fortigate-nvas"
+  - label: "FortiGate BGP configuration guide"
+    url: "https://docs.fortinet.com/document/fortigate/7.4.0/administration-guide/210236"
+  - label: "Azure vWAN BGP peers"
+    url: "https://learn.microsoft.com/en-us/azure/virtual-wan/scenario-bgp-peering-hub"
+---
+
+For the FortiGate NVAs in the vWAN hub to route traffic, they must establish BGP sessions with the Azure vWAN Virtual Router. This challenge requires you to configure BGP on both NVAs so that both sessions show as **Connected** in Azure.
+
+## Overview
+
+The Azure vWAN hub runs a Virtual Router with two BGP peer endpoints (one per availability zone). Each FortiGate NVA must establish a BGP session with both endpoints to provide redundancy.
+
+```
+FortiGate NVA 1 ──[eBGP]──► Hub BGP Peer 1 (AS 65515)
+                └─[eBGP]──► Hub BGP Peer 2 (AS 65515)
+
+FortiGate NVA 2 ──[eBGP]──► Hub BGP Peer 1 (AS 65515)
+                └─[eBGP]──► Hub BGP Peer 2 (AS 65515)
+```
+
+## Your NVAs
+
+<NvaCard />
+
+## Your BGP parameters
+
+<EnvVar field="fgt_asn" label="Your FortiGate Local AS" />
+<EnvVar field="azure_asn" label="Azure vWAN Remote AS" />
+
+## Steps
+
+### 1. Find the hub BGP peer addresses
+
+In the Azure Portal, navigate to:
+
+**Virtual WANs → your vWAN → Hubs → your hub → BGP Peers**
+
+Note the two peer IP addresses (typically in the `192.168.x.x` range) and their AS number (65515).
+
+### 2. Configure BGP on NVA 1
+
+Open the management interface of NVA 1 at <EnvVarInline field="url_fgt_nva1" />
+
+Navigate to **Network → BGP** and configure:
+
+| Parameter | Value |
+|-----------|-------|
+| Router ID | NVA management IP |
+| Local AS | <EnvVarInline field="fgt_asn" /> |
+
+Add two BGP neighbors:
+
+| Remote IP | Remote AS | Description |
+|-----------|-----------|-------------|
+| Hub BGP Peer 1 IP | 65515 | vWAN-hub-peer1 |
+| Hub BGP Peer 2 IP | 65515 | vWAN-hub-peer2 |
+
+Enable **eBGP Multipath** to use both paths simultaneously.
+
+### 3. Configure BGP on NVA 2
+
+Repeat the identical configuration on NVA 2 at <EnvVarInline field="url_fgt_nva2" />
+
+### 4. Configure static routes
+
+Before BGP can establish sessions, the NVAs need static routes to reach the hub BGP peer addresses. In the FortiGate CLI:
+
+```
+config router static
+    edit 1
+        set dst <hub-bgp-peer-1>/32
+        set gateway <nva-default-gateway>
+        set device port2
+    next
+    edit 2
+        set dst <hub-bgp-peer-2>/32
+        set gateway <nva-default-gateway>
+        set device port2
+    next
+end
+```
+
+### 5. Verify BGP sessions
+
+From the FortiGate CLI:
+
+```
+get router info bgp summary
+```
+
+Both neighbors should show state **Established** with a non-zero uptime.
+
+You can also verify from the **Azure Portal → Virtual Hub → BGP Peers** — both NVAs should show **Connected**.
+
+> **This challenge is scored.** The prober checks Azure's reported BGP connection state for both NVAs. Both sessions must be **Connected** to score the challenge — if only one is connected you will receive a warning instead.

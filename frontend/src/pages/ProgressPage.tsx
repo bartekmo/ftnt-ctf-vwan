@@ -10,6 +10,7 @@ const SCORED = challenges.filter(c => c.scored)
 const IMPLEMENTED_PROBERS = new Set([
   'check_nva_deployed',
   'check_nva_licensed',
+  'check_nva_bgp',
   'check_spoke_peered',
 ])
 
