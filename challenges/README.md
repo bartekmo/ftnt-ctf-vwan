@@ -24,20 +24,19 @@ challenges/
 | points   | int    | Base score. 0 = informational |
 | scored   | bool   | false = no prober, no points, no submit button |
 | prober   | string | Prober function name (omit when scored: false) |
-| order    | int    | 1-based display order |
 | visible  | bool   | false = hidden from attendees |
+
+Order is determined by the position in the  list — no separate field needed.
 
 ## MDX frontmatter fields
 
 ```yaml
 ---
-id: 03-branch-vpn
 title: "Establish the Branch VPN tunnel"
 category: vpn
 points: 150
 scored: true
 prober: check_branch_vpn
-order: 3
 hints:
   - text: "Hint text visible after purchase"
     cost: 20        # points deducted on unlock

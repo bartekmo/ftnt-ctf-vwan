@@ -10,7 +10,6 @@
 #   points      int      base score awarded on solve (0 = informational, not scored)
 #   scored      bool     false = informational only, no prober, no points
 #   prober      string   prober function name (omit if scored: false)
-#   order       int      1-based display order, drives sidebar and sequential lock
 #   visible     bool     false = hidden until trainer makes visible
 #
 # Hints are defined inside each challenge's MDX frontmatter, not here.
@@ -21,7 +20,6 @@ challenges:
     category: misc
     points: 0
     scored: false
-    order: 0
     visible: true
 
   - id: 01-deploy-nvas
@@ -30,7 +28,6 @@ challenges:
     points: 150
     scored: true
     prober: check_nva_deployed
-    order: 1
     visible: true
 
   - id: 02-license-nvas
@@ -39,7 +36,6 @@ challenges:
     points: 50
     scored: true
     prober: check_nva_licensed
-    order: 2
     visible: true
 
   - id: 03-configure-bgp
@@ -48,7 +44,6 @@ challenges:
     points: 150
     scored: true
     prober: check_nva_bgp
-    order: 3
     visible: true
 
   - id: 04-branch-vpn
@@ -57,7 +52,6 @@ challenges:
     points: 150
     scored: true
     prober: check_branch_vpn
-    order: 4
     visible: true
 
   - id: 05-branch-bgp
@@ -66,7 +60,6 @@ challenges:
     points: 150
     scored: true
     prober: check_branch_bgp
-    order: 5
     visible: true
 
   - id: 06-spoke-peering
@@ -75,7 +68,6 @@ challenges:
     points: 100
     scored: true
     prober: check_spoke_peered
-    order: 6
     visible: true
 
   - id: 07-spoke-routing
@@ -84,5 +76,4 @@ challenges:
     points: 200
     scored: true
     prober: check_spoke_routing
-    order: 7
     visible: true

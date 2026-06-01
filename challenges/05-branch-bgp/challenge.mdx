@@ -1,11 +1,9 @@
 ---
-id: 04-branch-bgp
 title: "Configure Branch BGP"
 category: routing
 points: 150
 scored: true
 prober: check_branch_bgp
-order: 4
 hints:
   - text: "BGP neighbours on the branch FortiGate should be the two hub NVA inside-tunnel IP addresses, not their public IPs. Check the Azure portal for the NVA BGP peer addresses."
     cost: 20

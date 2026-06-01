@@ -21,7 +21,6 @@ export interface ChallengeMeta {
   points: number
   scored: boolean
   prober?: string
-  order: number
   visible: boolean
   hints?: ChallengeHint[]
   refs?: ChallengeRef[]
@@ -65,16 +64,17 @@ function buildRegistry(): ChallengeEntry[] {
     const entry: ChallengeEntry = {
       ...indexMeta,
       // Only override with MDX frontmatter values that are explicitly defined
-      ...(fmMeta.hints   !== undefined && { hints:   fmMeta.hints }),
-      ...(fmMeta.refs    !== undefined && { refs:    fmMeta.refs }),
-      ...(fmMeta.title   !== undefined && { title:   fmMeta.title }),
+      ...(fmMeta.hints !== undefined && { hints: fmMeta.hints }),
+      ...(fmMeta.refs   !== undefined && { refs:  fmMeta.refs }),
+      ...(fmMeta.title  !== undefined && { title: fmMeta.title }),
       id,
       Component: mod.default,
     }
     entries.push(entry)
   }
 
-  return entries.sort((a, b) => (a.order ?? 99) - (b.order ?? 99))
+  // Order is preserved from index.yaml array declaration order
+  return entries
 }
 
 export const challenges: ChallengeEntry[] = buildRegistry()
