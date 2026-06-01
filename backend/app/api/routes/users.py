@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.db.session import get_db
-from app.models.models import User, UserRole
+from app.models.models import User, UserRole, Team
 from app.schemas.schemas import UserListOut
 from app.api.deps import get_current_trainer
 from app.core.security import hash_password
@@ -100,3 +100,78 @@ async def reset_database(
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
     return {"reset": True, "message": "Database wiped and schema recreated."}
+
+
+# ── TAP endpoints ──────────────────────────────────────────────────────────
+
+@router.get("/admin/tap-preview")
+async def tap_preview(
+    _trainer: User = Depends(get_current_trainer),
+):
+    """Preview: list student accounts that would get new TAPs. No writes."""
+    from app.services.graph_service import list_student_users
+    from app.core.config import azure_settings
+    if not azure_settings.GRAPH_CLIENT_ID:
+        raise HTTPException(503, "GRAPH_CLIENT_ID not configured")
+    users = await list_student_users()
+    return {
+        "count": len(users),
+        "users": [u["userPrincipalName"] for u in users],
+        "tap_lifetime_minutes": azure_settings.TAP_LIFETIME_MINUTES,
+    }
+
+
+@router.post("/admin/recreate-taps", status_code=200)
+async def recreate_taps(
+    db: AsyncSession = Depends(get_db),
+    _trainer: User = Depends(get_current_trainer),
+):
+    """
+    Create new TAPs for all vwanlab?? student accounts and store them
+    against the matching team (matched by env_id extracted from UPN).
+
+    Security: only accounts matching STUDENT_UPN_PATTERN are ever touched.
+    Pattern is enforced both here and inside graph_service.create_tap().
+    """
+    import re
+    from app.services.graph_service import list_student_users, create_tap
+    from app.core.config import azure_settings
+
+    if not azure_settings.GRAPH_CLIENT_ID:
+        raise HTTPException(503, "GRAPH_CLIENT_ID not configured")
+
+    users = await list_student_users()
+    results = []
+
+    for u in users:
+        upn    = u["userPrincipalName"]
+        # Extract the zero-padded env_id from "vwanlab01@..."
+        match  = re.match(r"vwanlab(\d{2})@", upn, re.IGNORECASE)
+        if not match:
+            continue
+        env_id_str = match.group(1)
+        env_id_int = int(env_id_str)
+
+        try:
+            tap_data = await create_tap(u["id"], upn)
+        except Exception as e:
+            results.append({"upn": upn, "status": "error", "detail": str(e)})
+            continue
+
+        # Store TAP against the team that owns this env_id
+        team_result = await db.execute(
+            select(Team).where(Team.env_id == env_id_int)
+        )
+        team = team_result.scalar_one_or_none()
+        if team:
+            team.azure_tap         = tap_data["tap"]
+            team.azure_tap_expires = tap_data["expires_at"]
+            results.append({"upn": upn, "status": "ok", "env_id": env_id_str})
+        else:
+            # No team assigned yet — store on team when assigned later
+            results.append({"upn": upn, "status": "no_team", "env_id": env_id_str})
+
+    await db.flush()
+    ok    = sum(1 for r in results if r["status"] == "ok")
+    error = sum(1 for r in results if r["status"] == "error")
+    return {"total": len(results), "ok": ok, "errors": error, "detail": results}

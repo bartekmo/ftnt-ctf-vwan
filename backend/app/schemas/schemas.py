@@ -115,6 +115,8 @@ class TeamEnvironmentOut(BaseModel):
     # Azure credentials
     azure_username: str
     azure_password: str                 # from AZURE_STUDENT_PASSWORD env var
+    azure_tap: Optional[str] = None     # Temporary Access Pass (24h)
+    azure_tap_expires: Optional[datetime] = None
     rg_name: str                        # per-team resource group name
 
     # BGP ASNs

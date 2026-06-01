@@ -72,6 +72,14 @@ resource "azurerm_container_app" "api" {
         name  = "AZURE_STUDENT_PASSWORD"
         value = var.azure_student_password
       }
+      env {
+        name  = "GRAPH_CLIENT_ID"
+        value = var.graph_client_id
+      }
+      env {
+        name  = "AZURE_TENANT_ID"
+        value = var.azure_tenant_id
+      }
       # Azure infrastructure settings for live ARM API calls
       env {
         name  = "AZURE_SUBSCRIPTION_ID"

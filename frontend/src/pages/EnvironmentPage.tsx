@@ -114,6 +114,18 @@ export default function EnvironmentPage() {
         <EnvCard icon={<Key size={18} color="var(--color-red)" />} title="Azure Credentials">
           <EnvRow label="Username" value={env.azure_username} onCopy={() => copy(env.azure_username, 'az_user')} copied={copied === 'az_user'} />
           <EnvRow label="Password" value={env.azure_password} secret onCopy={() => copy(env.azure_password, 'az_pass')} copied={copied === 'az_pass'} />
+          {env.azure_tap && (
+            <>
+              <EnvRow label="Temp. Access Pass" value={env.azure_tap} secret onCopy={() => copy(env.azure_tap!, 'tap')} copied={copied === 'tap'} />
+              <div style={{ fontSize: '0.75rem', color: env.azure_tap_expires && new Date(env.azure_tap_expires) < new Date() ? 'var(--color-warning)' : 'var(--color-text-dim)', paddingLeft: '0.75rem', marginTop: '-0.25rem', marginBottom: '0.25rem' }}>
+                {env.azure_tap_expires
+                  ? (new Date(env.azure_tap_expires) < new Date()
+                    ? `⚠ TAP expired ${new Date(env.azure_tap_expires).toLocaleString()}`
+                    : `Valid until ${new Date(env.azure_tap_expires).toLocaleString()}`)
+                  : ''}
+              </div>
+            </>
+          )}
           <EnvRow label="Resource group" value={env.rg_name} onCopy={() => copy(env.rg_name, 'rg')} copied={copied === 'rg'} mono />
           <EnvRow label="Region" value={hub?.location ?? null} mono />
           <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-border)' }}>

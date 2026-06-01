@@ -57,6 +57,8 @@ export interface TeamEnvironment {
   env_id: string
   azure_username: string
   azure_password: string
+  azure_tap: string | null
+  azure_tap_expires: string | null
   rg_name: string
   fgt_asn: number
   azure_asn: number
@@ -164,10 +166,25 @@ export const scoreboardApi = {
   resetEvent: () => api.post('/event/reset'),
 }
 
+export interface TapPreview {
+  count: number
+  users: string[]
+  tap_lifetime_minutes: number
+}
+
+export interface TapResult {
+  total: number
+  ok: number
+  errors: number
+  detail: Array<{ upn: string; status: string; env_id?: string; detail?: string }>
+}
+
 export const usersApi = {
   list: () => api.get<User[]>('/users'),
   setRole: (userId: number, role: string) => api.put(`/users/${userId}/role?role=${role}`),
   resetDb: () => api.post('/users/admin/reset-db'),
+  tapPreview: () => api.get<TapPreview>('/users/admin/tap-preview'),
+  recreateTaps: () => api.post<TapResult>('/users/admin/recreate-taps'),
 }
 // ── Infra API ──
 

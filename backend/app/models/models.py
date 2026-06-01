@@ -57,6 +57,8 @@ class Team(Base):
     name:       Mapped[str]           = mapped_column(String(100), unique=True, index=True)
     join_code:  Mapped[str]           = mapped_column(String(16), unique=True, index=True)
     env_id:     Mapped[Optional[int]] = mapped_column(Integer, unique=True, nullable=True)
+    azure_tap:         Mapped[Optional[str]]      = mapped_column(String(64),  nullable=True)
+    azure_tap_expires: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime]      = mapped_column(DateTime(timezone=True), default=utcnow)
 
     members:   Mapped[List["User"]]           = relationship("User", back_populates="team")

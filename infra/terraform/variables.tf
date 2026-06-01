@@ -176,3 +176,23 @@ variable "fmg_password" {
   sensitive   = true
   default     = ""
 }
+
+# ── TAP / Microsoft Graph ─────────────────────────────────────────────────
+
+variable "graph_client_id" {
+  description = <<-EOT
+    Client ID of the user-assigned managed identity used for Graph API calls.
+    This identity needs UserAuthenticationMethod.ReadWrite.All scoped to the
+    vwanlab Administrative Unit (not the full tenant).
+    Assign the Graph app role via PowerShell — see README.
+    Leave empty to disable the TAP feature.
+  EOT
+  type    = string
+  default = ""
+}
+
+variable "azure_tenant_id" {
+  description = "Entra tenant ID (used for Graph token acquisition)"
+  type        = string
+  default     = ""
+}

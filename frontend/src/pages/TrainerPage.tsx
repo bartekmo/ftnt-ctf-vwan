@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Play, Pause, Square, RotateCcw, Users, BookOpen, Shuffle } from 'lucide-react'
-import { scoreboardApi, usersApi, teamsApi, type CTFEvent, type Team } from '@/utils/api'
+import { Play, Pause, Square, RotateCcw, Users, BookOpen, Shuffle, Key, AlertTriangle } from 'lucide-react'
+import { scoreboardApi, usersApi, teamsApi, type CTFEvent, type Team, type TapPreview, type TapResult } from '@/utils/api'
 import type { User } from '@/utils/api'
 
 type Tab = 'event' | 'teams'
@@ -11,6 +11,9 @@ export default function TrainerPage() {
   const [teams, setTeams] = useState<Team[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(false)
+  const [tapPreview, setTapPreview] = useState<TapPreview | null>(null)
+  const [tapResult, setTapResult] = useState<TapResult | null>(null)
+  const [tapLoading, setTapLoading] = useState(false)
   const [msg, setMsg] = useState('')
 
   useEffect(() => {
@@ -36,6 +39,37 @@ export default function TrainerPage() {
       setMsg('Event reset.')
       setEvent(prev => prev ? { ...prev, status: 'pending', started_at: null, finished_at: null } : prev)
     } finally { setLoading(false) }
+  }
+
+  const previewTaps = async () => {
+    setTapLoading(true)
+    setTapPreview(null)
+    setTapResult(null)
+    try {
+      const r = await usersApi.tapPreview()
+      setTapPreview(r.data)
+    } catch {
+      setMsg('Failed to fetch TAP preview.')
+    } finally { setTapLoading(false) }
+  }
+
+  const confirmTaps = async () => {
+    if (!tapPreview) return
+    if (!confirm(`Create new TAPs for ${tapPreview.count} student account(s)?
+Each TAP is valid for ${tapPreview.tap_lifetime_minutes / 60}h.
+Existing TAPs will be replaced.`)) {
+      setTapPreview(null)
+      return
+    }
+    setTapLoading(true)
+    setTapPreview(null)
+    try {
+      const r = await usersApi.recreateTaps()
+      setTapResult(r.data)
+      setMsg(`TAPs created: ${r.data.ok} ok, ${r.data.errors} errors`)
+    } catch {
+      setMsg('TAP creation failed.')
+    } finally { setTapLoading(false) }
   }
 
   const resetDb = async () => {
@@ -134,6 +168,48 @@ export default function TrainerPage() {
               <button className="btn btn-danger" onClick={resetDb} disabled={loading} style={{ justifyContent: 'center', opacity: 0.8 }}>
                 <RotateCcw size={15} /> Reset Database
               </button>
+
+              {/* TAP section */}
+              <div className="divider" style={{ margin: '1rem 0 0.5rem' }} />
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>
+                Temporary Access Passes
+              </div>
+
+              {/* TAP expiry warning shown when event is running and TAPs are expired/missing */}
+              {event.status === 'running' && (
+                <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 'var(--radius-md)', padding: '0.6rem 0.75rem', marginBottom: '0.5rem', display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                  <AlertTriangle size={14} color="var(--color-warning)" style={{ flexShrink: 0, marginTop: 2 }} />
+                  <span style={{ fontSize: '0.8rem', color: 'var(--color-warning)' }}>
+                    Verify TAPs are valid before attendees sign in. Use the button below to recreate if expired.
+                  </span>
+                </div>
+              )}
+
+              {!tapPreview ? (
+                <button className="btn btn-secondary" onClick={previewTaps} disabled={tapLoading} style={{ justifyContent: 'center' }}>
+                  <Key size={15} /> {tapLoading ? 'Loading…' : 'Recreate TAPs'}
+                </button>
+              ) : (
+                <div style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: '0.75rem' }}>
+                  <p style={{ fontSize: '0.85rem', marginBottom: '0.5rem' }}>
+                    Found <strong>{tapPreview.count}</strong> student account(s). Each TAP valid for <strong>{tapPreview.tap_lifetime_minutes / 60}h</strong>.
+                  </p>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button className="btn btn-secondary" onClick={confirmTaps} disabled={tapLoading} style={{ flex: 1, justifyContent: 'center' }}>
+                      <Key size={14} /> Confirm
+                    </button>
+                    <button className="btn btn-ghost" onClick={() => setTapPreview(null)} style={{ flex: 1, justifyContent: 'center' }}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {tapResult && (
+                <div style={{ fontSize: '0.8rem', color: tapResult.errors > 0 ? 'var(--color-warning)' : 'var(--color-success)', marginTop: '0.25rem' }}>
+                  {tapResult.ok} TAP(s) created{tapResult.errors > 0 ? `, ${tapResult.errors} error(s)` : ''}
+                </div>
+              )}
             </div>
           </div>
 

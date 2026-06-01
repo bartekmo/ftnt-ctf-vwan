@@ -108,6 +108,8 @@ async def _build_environment(team: Team) -> TeamEnvironmentOut:
         # Azure credentials
         azure_username=f"vwanlab{ns}@fortinetcloud.onmicrosoft.com",
         azure_password=azure_settings.AZURE_STUDENT_PASSWORD,
+        azure_tap=team.azure_tap,
+        azure_tap_expires=team.azure_tap_expires,
         rg_name=f"{azure_settings.RG_PREFIX}{ns}{azure_settings.RG_SUFFIX}",
         # ASNs
         fgt_asn=_ASNS[n] if n < len(_ASNS) else 64512 + n,

@@ -52,6 +52,18 @@ class AzureSettings(BaseSettings):
     # Azure student account password (same for all teams)
     AZURE_STUDENT_PASSWORD: str = "StudentPassword123!"
 
+    # Microsoft Graph — TAP generation
+    # Client ID of a separate user-assigned managed identity with
+    # UserAuthenticationMethod.ReadWrite.All scoped to the vwanlab AU only.
+    # If empty, the TAP endpoint will return 503.
+    GRAPH_CLIENT_ID: str = ""
+    AZURE_TENANT_ID: str = ""
+    # UPN domain that all student accounts belong to
+    STUDENT_UPN_DOMAIN: str = "fortinetcloud.onmicrosoft.com"
+    STUDENT_UPN_PREFIX: str = "vwanlab"
+    # TAP lifetime in minutes (default 24h)
+    TAP_LIFETIME_MINUTES: int = 1440
+
     # FortiManager (shared across all teams)
     FMG_SERIAL: str = ""
     FMG_IP: str = ""
