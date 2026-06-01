@@ -1,7 +1,7 @@
 # ── Log Analytics workspace (required by Container Apps) ──────────────────
 
 resource "azurerm_log_analytics_workspace" "ctf" {
-  name                = "ctf-logs"
+  name                = "${var.prefix}-ctf-logs"
   resource_group_name = local.ctf_rg.name
   location            = local.ctf_rg.location
   sku                 = "PerGB2018"
@@ -11,7 +11,7 @@ resource "azurerm_log_analytics_workspace" "ctf" {
 # ── Container Apps environment ────────────────────────────────────────────
 
 resource "azurerm_container_app_environment" "ctf" {
-  name                       = "ctf-env"
+  name                       = "${var.prefix}-ctf-env"
   resource_group_name        = local.ctf_rg.name
   location                   = local.ctf_rg.location
   log_analytics_workspace_id = azurerm_log_analytics_workspace.ctf.id
@@ -23,7 +23,7 @@ resource "azurerm_container_app_environment" "ctf" {
 # internal DNS. Traffic never leaves the Container Apps environment.
 
 resource "azurerm_container_app" "api" {
-  name                         = "ctf-api"
+  name                         = "${var.prefix}-ctf-api"
   resource_group_name          = local.ctf_rg.name
   container_app_environment_id = azurerm_container_app_environment.ctf.id
   revision_mode                = "Single"
@@ -175,7 +175,7 @@ resource "azurerm_role_assignment" "api_subscription_reader" {
 # Public-facing. nginx proxies /api and /ws to the API using ACA internal DNS.
 
 resource "azurerm_container_app" "frontend" {
-  name                         = "ctf-frontend"
+  name                         = "${var.prefix}-ctf-frontend"
   resource_group_name          = local.ctf_rg.name
   container_app_environment_id = azurerm_container_app_environment.ctf.id
   revision_mode                = "Single"

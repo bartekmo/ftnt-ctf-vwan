@@ -15,7 +15,7 @@ locals {
 resource "azurerm_container_app_job" "probers" {
   count = local.probers_enabled ? 1 : 0
 
-  name                         = "ctf-probers"
+  name                         = "${var.prefix}-ctf-probers"
   resource_group_name          = local.ctf_rg.name
   location                     = local.ctf_rg.location
   container_app_environment_id = azurerm_container_app_environment.ctf.id
@@ -117,8 +117,6 @@ resource "azurerm_container_app_job" "probers" {
 # Grant the prober job's managed identity Reader on the subscription.
 # Only created when the job exists.
 resource "azurerm_role_assignment" "app_id_acr_pull" {
-  #scope                = "/subscriptions/${var.azure_subscription_id}"
-  #role_definition_name = "Reader"
   scope                = azurerm_container_registry.ctf.id
   role_definition_name = "AcrPull"
   principal_id         = azurerm_user_assigned_identity.app_id.principal_id
