@@ -16,12 +16,12 @@ resource "azurerm_container_app_job" "probers" {
   count = local.probers_enabled ? 1 : 0
 
   name                         = "ctf-probers"
-  resource_group_name          = data.azurerm_resource_group.ctf.name
-  location                     = data.azurerm_resource_group.ctf.location
+  resource_group_name          = local.ctf_rg.name
+  location                     = local.ctf_rg.location
   container_app_environment_id = azurerm_container_app_environment.ctf.id
 
   identity {
-    type = "UserAssigned"
+    type         = "UserAssigned"
     identity_ids = [azurerm_user_assigned_identity.app_id.id]
   }
 

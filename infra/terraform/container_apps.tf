@@ -2,8 +2,8 @@
 
 resource "azurerm_log_analytics_workspace" "ctf" {
   name                = "ctf-logs"
-  resource_group_name = data.azurerm_resource_group.ctf.name
-  location            = data.azurerm_resource_group.ctf.location
+  resource_group_name = local.ctf_rg.name
+  location            = local.ctf_rg.location
   sku                 = "PerGB2018"
   retention_in_days   = 30
 }
@@ -12,8 +12,8 @@ resource "azurerm_log_analytics_workspace" "ctf" {
 
 resource "azurerm_container_app_environment" "ctf" {
   name                       = "ctf-env"
-  resource_group_name        = data.azurerm_resource_group.ctf.name
-  location                   = data.azurerm_resource_group.ctf.location
+  resource_group_name        = local.ctf_rg.name
+  location                   = local.ctf_rg.location
   log_analytics_workspace_id = azurerm_log_analytics_workspace.ctf.id
 }
 
@@ -24,7 +24,7 @@ resource "azurerm_container_app_environment" "ctf" {
 
 resource "azurerm_container_app" "api" {
   name                         = "ctf-api"
-  resource_group_name          = data.azurerm_resource_group.ctf.name
+  resource_group_name          = local.ctf_rg.name
   container_app_environment_id = azurerm_container_app_environment.ctf.id
   revision_mode                = "Single"
 
@@ -176,7 +176,7 @@ resource "azurerm_role_assignment" "api_subscription_reader" {
 
 resource "azurerm_container_app" "frontend" {
   name                         = "ctf-frontend"
-  resource_group_name          = data.azurerm_resource_group.ctf.name
+  resource_group_name          = local.ctf_rg.name
   container_app_environment_id = azurerm_container_app_environment.ctf.id
   revision_mode                = "Single"
 

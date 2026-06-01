@@ -25,7 +25,7 @@ output "github_actions_variables" {
     AZURE_CLIENT_ID       = azuread_application.github_actions.client_id
     AZURE_TENANT_ID       = data.azurerm_client_config.current.tenant_id
     AZURE_SUBSCRIPTION_ID = data.azurerm_client_config.current.subscription_id
-    AZURE_RESOURCE_GROUP  = data.azurerm_resource_group.ctf.name
+    AZURE_RESOURCE_GROUP  = local.ctf_rg.name
     ACR_LOGIN_SERVER      = azurerm_container_registry.ctf.login_server
   }
 }

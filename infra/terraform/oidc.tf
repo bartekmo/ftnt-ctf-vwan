@@ -49,14 +49,14 @@ resource "azuread_application_federated_identity_credential" "github_workflow_di
 
 # Contributor on the resource group — lets Actions call az containerapp update
 resource "azurerm_role_assignment" "github_actions_contributor" {
-  scope                = data.azurerm_resource_group.ctf.id
+  scope                = local.ctf_rg.id
   role_definition_name = "Contributor"
   principal_id         = azuread_service_principal.github_actions.object_id
 }
 
 # AcrPush — lets Actions push newly built images to ACR
 resource "azurerm_role_assignment" "github_actions_acr_push" {
-  scope                = azurerm_container_registry.ctf.id
+  scope                = local.ctf_rg.id
   role_definition_name = "AcrPush"
   principal_id         = azuread_service_principal.github_actions.object_id
 }

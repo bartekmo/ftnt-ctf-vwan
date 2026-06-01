@@ -1,7 +1,8 @@
 variable "resource_group_name" {
-  description = "Name of the Azure resource group to deploy into."
+  description = "Name of the Azure resource group to deploy into. null means the module will create its own resource group."
   type        = string
-  default     = "rg-xperts26-ctf"
+  default     = null
+  nullable    = true
 }
 
 variable "location" {
@@ -126,9 +127,9 @@ variable "flex_tokens" {
     {"hubs": [null, ["token-a", "token-b"], ["token-c", "token-d"], ...]}
     Index 0 is unused; index N corresponds to team env_id N.
   EOT
-  type      = string
-  sensitive = true
-  default   = "{\"hubs\": []}"
+  type        = string
+  sensitive   = true
+  default     = "{\"hubs\": []}"
 }
 
 variable "fmg_serial" {
@@ -187,8 +188,8 @@ variable "graph_client_id" {
     Assign the Graph app role via PowerShell — see README.
     Leave empty to disable the TAP feature.
   EOT
-  type    = string
-  default = ""
+  type        = string
+  default     = ""
 }
 
 variable "azure_tenant_id" {

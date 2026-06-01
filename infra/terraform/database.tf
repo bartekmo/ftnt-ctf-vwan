@@ -3,12 +3,12 @@
 
 resource "azurerm_postgresql_flexible_server" "ctf" {
   name                   = var.db_server_name
-  resource_group_name    = data.azurerm_resource_group.ctf.name
-  location               = data.azurerm_resource_group.ctf.location
+  resource_group_name    = local.ctf_rg.name
+  location               = local.ctf_rg.location
   version                = "16"
   administrator_login    = var.db_admin_user
   administrator_password = var.db_admin_password
-  sku_name               = "${var.db_sku}"
+  sku_name               = var.db_sku
   storage_mb             = 32768
   #zone                   = "1"
 

@@ -38,7 +38,18 @@ data "azurerm_client_config" "current" {}
 # ── Resource group ────────────────────────────────────────────────────────
 
 data "azurerm_resource_group" "ctf" {
-  name     = var.resource_group_name
+  count = var.resource_group_name != null ? 1 : 0
+  name  = var.resource_group_name
+}
+
+resource "azurerm_resource_group" "ctf" {
+  count    = var.resource_group_name == null ? 1 : 0
+  name     = "${var.prefix}-ctf"
+  location = var.location
+}
+
+locals {
+  ctf_rg = var.resource_group_name != null ? data.azurerm_resource_group.ctf[0] : azurerm_resource_group.ctf[0]
 }
 
 data "azurerm_subscription" "current" {
@@ -47,8 +58,8 @@ data "azurerm_subscription" "current" {
 
 resource "azurerm_user_assigned_identity" "app_id" {
   name                = "${var.prefix}-app-id"
-  resource_group_name = data.azurerm_resource_group.ctf.name
-  location            = data.azurerm_resource_group.ctf.location
+  resource_group_name = local.ctf_rg.name
+  location            = local.ctf_rg.location
 }
 # ── Prober shared secret ──────────────────────────────────────────────────
 # Generated once at first apply and stored in Terraform state.
@@ -56,5 +67,5 @@ resource "azurerm_user_assigned_identity" "app_id" {
 
 resource "random_password" "prober_secret" {
   length  = 64
-  special = false  # hex-safe, no quoting issues in env vars
+  special = false # hex-safe, no quoting issues in env vars
 }
