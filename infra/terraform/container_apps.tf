@@ -208,11 +208,11 @@ resource "azurerm_container_app" "frontend" {
       # Traffic stays within the ACA environment and never hits the public internet.
       env {
         name  = "API_URL"
-        value = "https://ctf-api.internal.${azurerm_container_app_environment.ctf.default_domain}"
+        value = "https://${azurerm_container_app.api.name}.internal.${azurerm_container_app_environment.ctf.default_domain}"
       }
       env {
         name  = "API_HOST"
-        value = "ctf-api.internal.${azurerm_container_app_environment.ctf.default_domain}"
+        value = "${azurerm_container_app.api.name}.internal.${azurerm_container_app_environment.ctf.default_domain}"
       }
     }
   }
