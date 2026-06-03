@@ -1,0 +1,102 @@
+# Keeping for reference.
+#
+# OIDC integration with service principals instead of managed identitites. Doesnt work for some reason.
+
+# GitHub Actions OIDC / Workload Identity Federation
+#
+# Creates an Azure AD app registration with two federated credentials:
+#   1. push to main branch
+#   2. workflow_dispatch on main branch
+#
+# No client secret is created — GitHub proves its identity by presenting a
+# short-lived JWT signed by GitHub's OIDC provider. Azure AD verifies the
+# signature against the well-known OIDC metadata endpoint and issues a
+# short-lived access token scoped to the requested resource.
+#
+# Role assignments:
+#   - Contributor on the resource group  (needed to update Container Apps)
+#   - AcrPush on the registry            (needed to push built images)
+
+# ── App registration ──────────────────────────────────────────────────────
+
+resource "azuread_application" "github_actions" {
+  display_name = "${var.prefix}-infra-github-actions"
+}
+
+resource "azuread_service_principal" "github_actions" {
+  client_id = azuread_application.github_actions.client_id
+}
+
+resource "azuread_administrative_unit_member" "github_actions" {
+  administrative_unit_object_id = azuread_administrative_unit.example.object_id
+  member_object_id              = azuread_service_principal.github_actions.object_id
+}
+
+resource "azuread_application" "terraform_ctf" {
+  display_name = "${var.prefix}-infra-terraform-ctf"
+}
+
+resource "azuread_service_principal" "terraform_ctf" {
+  client_id = azuread_application.terraform_ctf.client_id
+  tags      = ["WindowsAzureActiveDirectoryIntegratedApplication"]
+}
+/*
+resource "azuread_administrative_unit_member" "terraform_ctf" {
+  administrative_unit_object_id = azuread_administrative_unit.example.object_id
+  member_object_id              = azuread_service_principal.terraform_ctf.object_id
+} */
+
+# ── Federated credentials ─────────────────────────────────────────────────
+
+# Trusts workflow runs triggered by a push to main
+resource "azuread_application_federated_identity_credential" "github_push_main" {
+  application_id = azuread_application.github_actions.id
+  display_name   = "${var.prefix}-infra-github-push-main"
+  issuer         = "https://token.actions.githubusercontent.com"
+  subject        = "repo:${var.github_org}/${var.github_repo}:ref:refs/heads/main"
+  audiences      = ["api://AzureADTokenExchange"]
+  description    = "Trusts GitHub Actions push-to-main runs for ${var.github_org}/${var.github_repo}"
+}
+
+# Trusts workflow_dispatch runs on main (manual trigger from GitHub UI)
+resource "azuread_application_federated_identity_credential" "github_workflow_dispatch" {
+  application_id = azuread_application.github_actions.id
+  display_name   = "${var.prefix}-infra-github-workflow-dispatch"
+  issuer         = "https://token.actions.githubusercontent.com"
+  subject        = "repo:${var.github_org}/${var.github_repo}:workflow_dispatch"
+  audiences      = ["api://AzureADTokenExchange"]
+  description    = "Trusts manual workflow_dispatch runs for ${var.github_org}/${var.github_repo}"
+}
+
+resource "azuread_application_federated_identity_credential" "terraform_ctf" {
+  for_each = toset(["plan", "apply"])
+
+  application_id = azuread_application.terraform_ctf.id
+  display_name   = "${var.prefix}-infra-terraformcloud-ctf-${each.key}"
+  issuer         = "https://app.terraform.io"
+  subject        = "organization:40net:project:vwanlab:workspace:vwanlab-ctf:run_phase:${each.key}"
+  audiences      = ["api://AzureADTokenExchange"]
+  description    = "Trusts HCL terraform cloud vwanlab-ctf workspace"
+}
+
+# ── Role assignments ──────────────────────────────────────────────────────
+
+# Contributor on the resource group — lets Actions call az containerapp update
+resource "azurerm_role_assignment" "github_actions_contributor" {
+  scope                = azurerm_resource_group.infra.id
+  role_definition_name = "Contributor"
+  principal_id         = azuread_service_principal.github_actions.object_id
+}
+
+# AcrPush — lets Actions push newly built images to ACR
+resource "azurerm_role_assignment" "github_actions_acr_push" {
+  scope                = azurerm_container_registry.ctf.id
+  role_definition_name = "AcrPush"
+  principal_id         = azuread_service_principal.github_actions.object_id
+}
+
+resource "azurerm_role_assignment" "tfc__infra_contributor" {
+  scope                = azurerm_resource_group.infra.id
+  role_definition_name = "Contributor"
+  principal_id         = azuread_service_principal.terraform_ctf.object_id
+}
