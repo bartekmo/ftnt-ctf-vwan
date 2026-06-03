@@ -61,7 +61,7 @@ resource "azurerm_container_app" "api" {
 
     container {
       name   = "ctf-api"
-      image  = var.api_image
+      image  = "${var.acr_login_server}/${var.api_image}"
       cpu    = 1.0
       memory = "2Gi"
 
@@ -84,7 +84,7 @@ resource "azurerm_container_app" "api" {
       # Azure infrastructure settings for live ARM API calls
       env {
         name  = "AZURE_SUBSCRIPTION_ID"
-        value = var.azure_subscription_id
+        value = data.azurerm_client_config.current.subscription_id
       }
       env {
         name  = "VWAN_NAME"
@@ -197,7 +197,7 @@ resource "azurerm_container_app" "frontend" {
 
     container {
       name   = "ctf-frontend"
-      image  = var.frontend_image
+      image  = "${var.acr_login_server}/${var.frontend_image}"
       cpu    = 0.5
       memory = "1Gi"
 

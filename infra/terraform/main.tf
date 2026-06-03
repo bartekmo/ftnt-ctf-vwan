@@ -52,7 +52,7 @@ locals {
 }
 
 data "azurerm_subscription" "current" {
-  subscription_id = var.azure_subscription_id
+  subscription_id = data.azurerm_client_config.current.subscription_id
 }
 
 data "azurerm_user_assigned_identity" "app_id" {

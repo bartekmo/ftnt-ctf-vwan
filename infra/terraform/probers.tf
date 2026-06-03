@@ -47,7 +47,7 @@ resource "azurerm_container_app_job" "probers" {
   template {
     container {
       name   = "probers"
-      image  = var.probers_image
+      image  = "${var.acr_login_server}/${var.probers_image}"
       cpu    = 0.5
       memory = "1Gi"
 
@@ -85,7 +85,7 @@ resource "azurerm_container_app_job" "probers" {
       }
       env {
         name  = "AZURE_SUBSCRIPTION_ID"
-        value = var.azure_subscription_id
+        value = data.azurerm_client_config.current.subscription_id
       }
       env {
         name  = "RG_PREFIX"

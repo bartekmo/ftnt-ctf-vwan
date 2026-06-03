@@ -25,7 +25,7 @@ variable "prefix" {
 variable "db_server_name" {
   description = "PostgreSQL Flexible Server name. Must be globally unique."
   type        = string
-  default     = "ctf-pg-xperts26"
+  default     = "vwanlab-pg-xperts26"
 }
 
 variable "db_admin_user" {
@@ -57,25 +57,24 @@ variable "db_sku" {
 variable "api_image" {
   description = "Full image reference for the API container, e.g. xperts26ctf.azurecr.io/ctf-api:latest"
   type        = string
+  default     = "ctf-api:latest"
 }
 
 variable "frontend_image" {
   description = "Full image reference for the frontend container, e.g. xperts26ctf.azurecr.io/ctf-frontend:latest"
   type        = string
+  default     = "ctf-frontend:latest"
 }
 
-
-# ── OIDC / GitHub Actions ─────────────────────────────────────────────────
-
+variable "probers_image" {
+  description = "Full image reference for the probers container, e.g. xperts26ctf.azurecr.io/ctf-probers:latest"
+  type        = string
+  default     = "ctf-probers:latest"
+}
 
 
 # ── Azure infrastructure (for live ARM API calls from the API container) ──
 
-variable "azure_subscription_id" {
-  description = "Azure subscription ID. The API container uses this with its managed identity to call ARM."
-  type        = string
-  default     = ""
-}
 
 variable "vwan_name" {
   description = "Name of the Azure Virtual WAN resource."
@@ -130,14 +129,6 @@ variable "azure_student_password" {
   default     = "StudentPassword123!"
 }
 
-# ── Probers ───────────────────────────────────────────────────────────────
-
-variable "probers_image" {
-  description = "Full image reference for the probers container, e.g. xperts26ctf.azurecr.io/ctf-probers:latest"
-  type        = string
-  default     = ""
-}
-
 
 variable "fgt_firmware_version" {
   description = "Expected FortiGate firmware version on hub NVAs. Probers warn if the actual version differs."
@@ -187,6 +178,12 @@ variable "acr_id" {
 variable "acr_login_server" {
   description = "Login server URL of the Azure Container Registry (ACR), e.g. xperts26ctf.azurecr.io. Output from the infra/terraform-seed module."
   type        = string
+}
+
+variable "acr_name" {
+  description = "Name of the Azure Container Registry (ACR). Output from the infra/terraform-seed module."
+  type        = string
+  default     = ""
 }
 
 variable "app_id_name" {
