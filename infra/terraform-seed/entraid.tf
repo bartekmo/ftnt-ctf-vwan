@@ -11,3 +11,24 @@ resource "azurerm_user_assigned_identity" "ctf_app" {
   location            = azurerm_resource_group.infra.location
 }
 
+# ── OIDC role assignments ──────────────────────────────────────────────────────
+
+# Contributor on the resource group — uses the Managed Identity's principal_id
+resource "azurerm_role_assignment" "github_actions_contributor" {
+  scope                = azurerm_resource_group.infra.id
+  role_definition_name = "Contributor"
+  principal_id         = azurerm_user_assigned_identity.github_actions.principal_id
+}
+
+# AcrPush — lets Actions push newly built images to ACR
+resource "azurerm_role_assignment" "github_actions_acr_push" {
+  scope                = azurerm_container_registry.ctf.id
+  role_definition_name = "AcrPush"
+  principal_id         = azurerm_user_assigned_identity.github_actions.principal_id
+}
+
+resource "azurerm_role_assignment" "terraform_ctf_contributor" {
+  scope                = azurerm_resource_group.infra.id
+  role_definition_name = "Contributor"
+  principal_id         = azurerm_user_assigned_identity.terraform_ctf.principal_id
+}
