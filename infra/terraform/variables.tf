@@ -69,11 +69,6 @@ variable "frontend_image" {
   type        = string
 }
 
-variable "api_secret_key" {
-  description = "JWT secret key for the API. Generate with: openssl rand -hex 32"
-  type        = string
-  sensitive   = true
-}
 
 # ── OIDC / GitHub Actions ─────────────────────────────────────────────────
 

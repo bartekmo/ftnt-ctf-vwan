@@ -18,7 +18,6 @@ api_image      = "xperts26ctf.azurecr.io/ctf-api:latest"
 frontend_image = "xperts26ctf.azurecr.io/ctf-frontend:latest"
 
 # JWT secret key — generate with: openssl rand -hex 32
-api_secret_key = "CHANGE_ME_run_openssl_rand_hex_32"
 
 # GitHub
 github_org  = "bartekmo"
