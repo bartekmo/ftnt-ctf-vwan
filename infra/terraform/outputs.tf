@@ -31,10 +31,10 @@ output "github_actions_variables" {
 output "seed_trainer_command" {
   description = "Run this after first deploy to create the trainer account."
   value       = <<-CMD
-    curl -X POST "https://${azurerm_container_app.api.ingress[0].fqdn}/api/users/seed-trainer" \
+    curl -X POST "https://${azurerm_container_app.frontend.ingress[0].fqdn}/api/users/seed-trainer" \
       -G \
       --data-urlencode "username=trainer" \
-      --data-urlencode "password=<your-trainer-password>" \
+      --data-urlencode "password=$PASSWORD" \
       --data-urlencode "email=trainer@xperts26.local"
   CMD
 }
