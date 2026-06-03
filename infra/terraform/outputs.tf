@@ -44,7 +44,7 @@ output "seed_trainer_command" {
 output "first_push_commands" {
   description = "Run these once after terraform apply to push initial images before GitHub Actions is triggered."
   value       = <<-CMD
-    az acr login --name ${var.acr_name}
+    az acr login --name ${replace(var.acr_login_server, ".azurecr.io", "")}
     docker build -t ${var.acr_login_server}/ctf-api:latest ./backend && \
     docker push ${var.acr_login_server}/ctf-api:latest
     docker build -t ${var.acr_login_server}/ctf-frontend:latest ./frontend && \

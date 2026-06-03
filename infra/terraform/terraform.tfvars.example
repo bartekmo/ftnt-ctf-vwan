@@ -5,7 +5,6 @@ resource_group_name = "rg-xperts26-ctf"
 location            = "westeurope"
 
 # ACR — must be globally unique, lowercase, alphanumeric only
-acr_name = "xperts26ctf"
 
 # PostgreSQL
 db_server_name    = "ctf-pg-xperts26"
@@ -20,8 +19,6 @@ frontend_image = "xperts26ctf.azurecr.io/ctf-frontend:latest"
 # JWT secret key — generate with: openssl rand -hex 32
 
 # GitHub
-github_org  = "bartekmo"
-github_repo = "ftnt-ctf-vwan"
 
 # Azure infrastructure (for live ARM API calls)
 azure_subscription_id = ""

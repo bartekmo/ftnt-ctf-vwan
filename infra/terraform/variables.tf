@@ -19,11 +19,6 @@ variable "prefix" {
 
 # ── ACR ───────────────────────────────────────────────────────────────────
 
-variable "acr_name" {
-  description = "Azure Container Registry name. Must be globally unique, lowercase, alphanumeric only."
-  type        = string
-  default     = "xperts26ctf"
-}
 
 # ── PostgreSQL ────────────────────────────────────────────────────────────
 
@@ -72,17 +67,7 @@ variable "frontend_image" {
 
 # ── OIDC / GitHub Actions ─────────────────────────────────────────────────
 
-variable "github_org" {
-  description = "GitHub organisation or user that owns the repository."
-  type        = string
-  default     = "bartekmo"
-}
 
-variable "github_repo" {
-  description = "GitHub repository name (without org prefix)."
-  type        = string
-  default     = "ftnt-ctf-vwan"
-}
 
 # ── Azure infrastructure (for live ARM API calls from the API container) ──
 
