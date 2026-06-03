@@ -197,3 +197,19 @@ variable "azure_tenant_id" {
   type        = string
   default     = ""
 }
+
+
+variable "acr_id" {
+  description = "Resource ID of the Azure Container Registry (ACR) where container images are stored. Output from the infra/terraform-seed module."
+  type        = string
+}
+
+variable "acr_login_server" {
+  description = "Login server URL of the Azure Container Registry (ACR), e.g. xperts26ctf.azurecr.io. Output from the infra/terraform-seed module."
+  type        = string
+}
+
+variable "app_id_name" {
+  description = "Name of the user-assigned managed identity used by the container apps and jobs. Output from the infra/terraform-seed module."
+  type        = string
+}

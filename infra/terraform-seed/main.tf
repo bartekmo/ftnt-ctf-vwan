@@ -7,6 +7,21 @@ terraform {
       name = "vwanlab-perm"
     }
   }
+
+  required_providers {
+    azurerm = {
+      source = "hashicorp/azurerm"
+    }
+    azuread = {
+      source = "hashicorp/azuread"
+    }
+    github = {
+      source = "integrations/github"
+    }
+    tfe = {
+      source = "hashicorp/tfe"
+    }
+  }
 }
 
 provider "azurerm" {
@@ -32,4 +47,72 @@ resource "azurerm_container_registry" "ctf" {
   location            = azurerm_resource_group.infra.location
   sku                 = "Basic"
   admin_enabled       = false
+}
+
+resource "github_actions_variable" "acr_login_server" {
+  repository    = var.github_repo
+  variable_name = "ACR_LOGIN_SERVER"
+  value         = azurerm_container_registry.ctf.login_server
+}
+
+resource "github_actions_variable" "azure_resource_group" {
+  repository    = var.github_repo
+  variable_name = "AZURE_RESOURCE_GROUP"
+  value         = azurerm_resource_group.infra.name
+}
+
+# Apply client ID to Terraform Cloud variable set
+#
+
+data "tfe_project" "vwanlab" {
+  organization = var.tfc_org_name
+  name         = var.tfc_project_name
+}
+
+data "tfe_workspace" "ctf" {
+  organization = var.tfc_org_name
+  name         = var.ctf_workspace_name
+}
+
+resource "tfe_variable_set" "acr" {
+  organization      = var.tfc_org_name
+  parent_project_id = data.tfe_project.vwanlab.id
+  name              = "ACR registry for ctf"
+}
+
+resource "tfe_workspace_variable_set" "acr_for_ctf" {
+  workspace_id    = data.tfe_workspace.ctf.id
+  variable_set_id = tfe_variable_set.acr.id
+}
+
+resource "tfe_variable" "acr_id" {
+  key             = "acr_id"
+  value           = azurerm_container_registry.ctf.id
+  category        = "terraform"
+  variable_set_id = tfe_variable_set.acr.id
+  sensitive       = false
+}
+
+resource "tfe_variable" "acr_name" {
+  key             = "acr_name"
+  value           = azurerm_container_registry.ctf.name
+  category        = "terraform"
+  variable_set_id = tfe_variable_set.acr.id
+  sensitive       = false
+}
+
+resource "tfe_variable" "login_server" {
+  key             = "acr_login_server"
+  value           = azurerm_container_registry.ctf.login_server
+  category        = "terraform"
+  variable_set_id = tfe_variable_set.acr.id
+  sensitive       = false
+}
+
+resource "tfe_variable" "app_id_name" {
+  key          = "app_id_name"
+  value        = azurerm_user_assigned_identity.ctf_app.name
+  category     = "terraform"
+  workspace_id = data.tfe_workspace.ctf.id
+  sensitive    = false
 }

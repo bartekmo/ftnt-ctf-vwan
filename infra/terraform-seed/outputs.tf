@@ -13,12 +13,7 @@ output "ctf_acr_name" {
   value       = azurerm_container_registry.ctf.name
 }
 
-/*
-output "github_actions_client_id" {
-  description = "Client ID of the Azure AD application for GitHub Actions OIDC authentication."
-  value       = azuread_application.github_actions.client_id
-}
-*/
+
 
 output "oidc_terraform_client_id" {
   description = "Client ID of the Azure AD application for Terraform Cloud OIDC authentication."

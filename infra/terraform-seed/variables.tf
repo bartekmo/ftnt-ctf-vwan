@@ -35,3 +35,21 @@ variable "github_repo" {
   type        = string
   default     = "ftnt-ctf-vwan"
 }
+
+variable "tfc_project_name" {
+  type        = string
+  description = "Name of the project in HCL Terraform"
+  default     = "vwanlab"
+}
+
+variable "tfc_org_name" {
+  type        = string
+  description = "Name of the organization in HCL Terraform"
+  default     = "40net"
+}
+
+variable "ctf_workspace_name" {
+  type        = string
+  description = "Name of the Terraform Cloud workspace for the CTF environment"
+  default     = "vwanlab-ctf"
+}

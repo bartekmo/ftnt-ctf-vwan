@@ -32,3 +32,18 @@ resource "azurerm_role_assignment" "terraform_ctf_contributor" {
   role_definition_name = "Contributor"
   principal_id         = azurerm_user_assigned_identity.terraform_ctf.principal_id
 }
+
+
+resource "azurerm_role_assignment" "app_id_acr_pull" {
+  scope                = azurerm_container_registry.ctf.id
+  role_definition_name = "AcrPull"
+  principal_id         = azurerm_user_assigned_identity.ctf_app.principal_id
+}
+
+/*
+resource "azurerm_role_assignment" "app_id_subscription_reader" {
+  scope                = data.azurerm_subscription.current.id
+  role_definition_name = "Reader"
+  principal_id         = azurerm_user_assigned_identity.ctf_app.principal_id
+}
+*/
