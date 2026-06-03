@@ -22,12 +22,12 @@ resource "azurerm_container_app_job" "probers" {
 
   identity {
     type         = "UserAssigned"
-    identity_ids = [azurerm_user_assigned_identity.app_id.id]
+    identity_ids = [data.azurerm_user_assigned_identity.app_id.id]
   }
 
   registry {
-    server   = azurerm_container_registry.ctf.login_server
-    identity = azurerm_user_assigned_identity.app_id.id
+    server   = var.acr_login_server
+    identity = data.azurerm_user_assigned_identity.app_id.id
   }
 
   replica_timeout_in_seconds = 120
@@ -57,7 +57,7 @@ resource "azurerm_container_app_job" "probers" {
       }
       env {
         name  = "AZURE_CLIENT_ID"
-        value = azurerm_user_assigned_identity.app_id.client_id
+        value = data.azurerm_user_assigned_identity.app_id.client_id
       }
       env {
         name  = "FGT_FIRMWARE_VERSION"
@@ -107,23 +107,5 @@ resource "azurerm_container_app_job" "probers" {
       template[0].container[0].image, # Allow updating the container image without triggering a full replacement
     ]
   }
-
-  depends_on = [
-    azurerm_role_assignment.app_id_acr_pull,
-    azurerm_role_assignment.app_id_subscription_reader,
-  ]
 }
 
-# Grant the prober job's managed identity Reader on the subscription.
-# Only created when the job exists.
-resource "azurerm_role_assignment" "app_id_acr_pull" {
-  scope                = azurerm_container_registry.ctf.id
-  role_definition_name = "AcrPull"
-  principal_id         = azurerm_user_assigned_identity.app_id.principal_id
-}
-
-resource "azurerm_role_assignment" "app_id_subscription_reader" {
-  scope                = data.azurerm_subscription.current.id
-  role_definition_name = "Reader"
-  principal_id         = azurerm_user_assigned_identity.app_id.principal_id
-}

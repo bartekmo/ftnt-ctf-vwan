@@ -16,13 +16,12 @@ terraform {
     }
   }
 
-  # Uncomment and configure to store state remotely (recommended for team use):
-  # backend "azurerm" {
-  #   resource_group_name  = "rg-tfstate"
-  #   storage_account_name = "tfstatexperts26"
-  #   container_name       = "tfstate"
-  #   key                  = "ctf.tfstate"
-  # }
+  cloud {
+    organization = "40net"
+    workspaces {
+      name = "vwanlab-ctf"
+    }
+  }
 }
 
 provider "azurerm" {
@@ -56,10 +55,9 @@ data "azurerm_subscription" "current" {
   subscription_id = var.azure_subscription_id
 }
 
-resource "azurerm_user_assigned_identity" "app_id" {
-  name                = "${var.prefix}-app-id"
+data "azurerm_user_assigned_identity" "app_id" {
+  name                = var.app_id_name
   resource_group_name = local.ctf_rg.name
-  location            = local.ctf_rg.location
 }
 # ── Prober shared secret ──────────────────────────────────────────────────
 # Generated once at first apply and stored in Terraform state.

@@ -29,12 +29,13 @@ resource "azurerm_container_app" "api" {
   revision_mode                = "Single"
 
   identity {
-    type = "SystemAssigned"
+    type         = "UserAssigned"
+    identity_ids = [data.azurerm_user_assigned_identity.app_id.id]
   }
 
   registry {
-    server   = azurerm_container_registry.ctf.login_server
-    identity = "system"
+    server   = var.acr_login_server
+    identity = data.azurerm_user_assigned_identity.app_id.id
   }
 
   secret {
@@ -152,9 +153,9 @@ resource "azurerm_container_app" "api" {
     ]
   }
 }
-
+/*
 resource "azurerm_role_assignment" "api_acr_pull" {
-  scope                = azurerm_container_registry.ctf.id
+  scope                = var.acr_id
   role_definition_name = "AcrPull"
   principal_id         = azurerm_container_app.api.identity[0].principal_id
 }
@@ -170,7 +171,7 @@ resource "azurerm_role_assignment" "api_subscription_reader" {
   role_definition_name = "Reader"
   principal_id         = azurerm_container_app.api.identity[0].principal_id
 }
-
+*/
 # ── Frontend Container App ────────────────────────────────────────────────
 # Public-facing. nginx proxies /api and /ws to the API using ACA internal DNS.
 
@@ -181,12 +182,13 @@ resource "azurerm_container_app" "frontend" {
   revision_mode                = "Single"
 
   identity {
-    type = "SystemAssigned"
+    type         = "UserAssigned"
+    identity_ids = [data.azurerm_user_assigned_identity.app_id.id]
   }
 
   registry {
-    server   = azurerm_container_registry.ctf.login_server
-    identity = "system"
+    server   = var.acr_login_server
+    identity = data.azurerm_user_assigned_identity.app_id.id
   }
 
   template {
@@ -230,9 +232,10 @@ resource "azurerm_container_app" "frontend" {
     ]
   }
 }
-
+/*
 resource "azurerm_role_assignment" "frontend_acr_pull" {
-  scope                = azurerm_container_registry.ctf.id
+  scope                = var.acr_id
   role_definition_name = "AcrPull"
   principal_id         = azurerm_container_app.frontend.identity[0].principal_id
 }
+*/
