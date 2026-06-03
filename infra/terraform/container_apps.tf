@@ -44,7 +44,7 @@ resource "azurerm_container_app" "api" {
   }
   secret {
     name  = "secret-key"
-    value = var.api_secret_key
+    value = random_password.api_secret_key.result
   }
   secret {
     name  = "flex-tokens"

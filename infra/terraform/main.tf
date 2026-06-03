@@ -67,3 +67,8 @@ resource "random_password" "prober_secret" {
   length  = 64
   special = false # hex-safe, no quoting issues in env vars
 }
+
+resource "random_password" "api_secret_key" {
+  length  = 64
+  special = false
+}
