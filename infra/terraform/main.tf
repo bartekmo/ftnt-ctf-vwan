@@ -57,7 +57,7 @@ data "azurerm_subscription" "current" {
 
 data "azurerm_user_assigned_identity" "app_id" {
   name                = var.app_id_name
-  resource_group_name = local.ctf_rg.name
+  resource_group_name = coalesce(var.app_id_resource_group, local.ctf_rg.name)
 }
 # ── Prober shared secret ──────────────────────────────────────────────────
 # Generated once at first apply and stored in Terraform state.
