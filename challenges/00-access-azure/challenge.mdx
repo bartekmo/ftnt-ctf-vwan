@@ -28,21 +28,28 @@ Use the credentials below to access your Azure environment.
 
 Once logged in go to **Resource Groups** and make sure you can see your resource group **<EnvVarInline field="rg_name" />**. Your view should be similar to this:
 
-![Resource group in Azure portal](img/student-rg.png)
+![Resource group in Azure portal](./img/student-rg.png)
 
-### FortiManager
+## FortiManager
 
-In a new browser tab open the shared FortiManager UI <EnvVar label="FortiManager UI" field="fmg" />
+In a new browser tab open the shared FortiManager UI 
+<EnvVar label="FortiManager UI" field="fmg_ip" />
 
 Log in using your username and password visible in My Environment.
 
-## Access the branch FortiGate
+> **Verify:** you should see only the ADOM named after your hub with one FortiGate in it.
 
-The branch FortiGate management interface is reachable at:
+## Branch FortiGate
+
+That's the FortioGate at the edge of your regional on-site branch office. You can rach it via FortiManager or directly here:
 
 <EnvVar field="branch_fgt_pip" label="Branch FortiGate PIP" />
 
 Open https://<EnvVarInline field="branch_fgt_pip" /> in your browser. Accept the self-signed certificate warning. Log in with the same username and password as for FortiManager.
 
-> **Verify:** you can access (only) ADOM named after your hub. You should see one FortiGate there.
+## Branch Windows desktop
+
+Use RDP client installed in your OS (tsc on Windows/Windows App on MacOS) or any custom RDP client to connect directly to Windows desktop in your branch office. Keep in mind only one person from your team can be logged in at the same moment.
+
+<EnvVar field="branch_win_pip" label="Winows desktop" />
 
