@@ -36,6 +36,10 @@ settings = Settings()
 
 
 class AzureSettings(BaseSettings):
+    # Azure App Configuration endpoint — if set, non-secret config is
+    # loaded from there at startup instead of from individual env vars.
+    APP_CONFIG_ENDPOINT: str = ""
+
     # Azure identity & subscription
     AZURE_SUBSCRIPTION_ID: str = ""
 

@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.core.config import settings, azure_settings
+from app.core.config import settings
 from app.db.session import engine
 from app.db.session import Base
 
@@ -18,10 +18,23 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Log Azure config on startup so misconfiguration is immediately visible
+    # ── Step 1: load config from Azure App Configuration ─────────────────
+    # Must run before azure_settings is first accessed so pydantic-settings
+    # reads the freshly injected env vars.
+    from app.services.appconfig_loader import load_from_app_config
+    await load_from_app_config()
+
+    # ── Step 2: re-import azure_settings after env vars are populated ─────
+    # pydantic-settings reads env vars at instantiation time, so we
+    # re-instantiate to pick up what App Configuration just injected.
+    from app.core.config import AzureSettings
+    import app.core.config as _cfg
+    _cfg.azure_settings = AzureSettings()
+    azure_settings = _cfg.azure_settings
+
+    # ── Step 3: log resolved config for visibility ────────────────────────
     logger.info("=== Azure settings ===")
-    logger.info("  AZURE_SUBSCRIPTION_ID : %s",
-                azure_settings.AZURE_SUBSCRIPTION_ID or "*** NOT SET ***")
+    logger.info("  AZURE_SUBSCRIPTION_ID : %s", azure_settings.AZURE_SUBSCRIPTION_ID or "*** NOT SET ***")
     logger.info("  VWAN_NAME             : %s", azure_settings.VWAN_NAME or "*** NOT SET ***")
     logger.info("  RG_PREFIX             : %s", azure_settings.RG_PREFIX)
     logger.info("  RG_SUFFIX             : %s", repr(azure_settings.RG_SUFFIX))
@@ -31,10 +44,10 @@ async def lifespan(app: FastAPI):
     logger.info("  FLEX_TOKENS set       : %s", azure_settings.FLEX_TOKENS != '{"hubs": []}')
     logger.info("======================")
 
-    # Create any missing tables. Schema changes require a manual DB reset
-    # via the trainer admin panel (POST /api/admin/reset-db).
+    # ── Step 4: create DB tables ──────────────────────────────────────────
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
     yield
     await engine.dispose()
 
