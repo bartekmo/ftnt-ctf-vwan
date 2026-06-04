@@ -72,11 +72,15 @@ async def list_student_users() -> list[dict]:
     async with httpx.AsyncClient(timeout=15) as client:
         resp = await client.get(
             f"{GRAPH_BASE}/users",
-            headers={"Authorization": f"Bearer {token}"},
+            headers={
+                "Authorization":    f"Bearer {token}",
+                "ConsistencyLevel": "eventual",  # required for advanced filters
+            },
             params={
                 "$filter": f"startsWith(userPrincipalName,'{prefix}') and "
                            f"endsWith(userPrincipalName,'@{domain}')",
                 "$select": "id,userPrincipalName",
+                "$count":  "true",  # required alongside ConsistencyLevel
                 "$top":    "100",
             },
         )
