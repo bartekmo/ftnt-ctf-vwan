@@ -91,7 +91,10 @@ resource "azurerm_container_app" "api" {
         name  = "AZURE_SUBSCRIPTION_ID"
         value = data.azurerm_client_config.current.subscription_id
       }
-
+      env {
+        name  = "AZURE_CLIENT_ID"
+        value = data.azurerm_user_assigned_identity.app_id.client_id
+      }
       env {
         name  = "RG_PREFIX"
         value = var.rg_prefix
