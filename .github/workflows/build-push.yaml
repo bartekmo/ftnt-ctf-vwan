@@ -173,7 +173,7 @@ jobs:
           inlineScript: |
             az containerapp update \
               --resource-group ${{ vars.AZURE_RESOURCE_GROUP }} \
-              --name ctf-api \
+              --name vwanlab-ctf-api \
               --image ${{ env.REGISTRY }}/ctf-api:${{ github.sha }}
 
       - name: Update frontend container app
@@ -184,7 +184,7 @@ jobs:
           inlineScript: |
             az containerapp update \
               --resource-group ${{ vars.AZURE_RESOURCE_GROUP }} \
-              --name ctf-frontend \
+              --name vwanlab-ctf-frontend \
               --image ${{ env.REGISTRY }}/ctf-frontend:${{ github.sha }}
 
       - name: Update probers job image
@@ -195,5 +195,5 @@ jobs:
           inlineScript: |
             az containerapp job update \
               --resource-group ${{ vars.AZURE_RESOURCE_GROUP }} \
-              --name ctf-probers \
+              --name vwanlab-ctf-probers \
               --image ${{ env.REGISTRY }}/ctf-probers:${{ github.sha }}
