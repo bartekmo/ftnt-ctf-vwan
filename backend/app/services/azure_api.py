@@ -25,10 +25,12 @@ def _get_clients():
     Lazily create SDK clients. Called inside the thread pool so imports and
     credential acquisition don't block the event loop on startup.
     """
+    import os
     from azure.identity import ManagedIdentityCredential
     from azure.mgmt.network import NetworkManagementClient
 
-    credential = ManagedIdentityCredential()
+    client_id  = os.environ.get("AZURE_CLIENT_ID")
+    credential = ManagedIdentityCredential(client_id=client_id) if client_id else ManagedIdentityCredential()
     network = NetworkManagementClient(
         credential=credential,
         subscription_id=azure_settings.AZURE_SUBSCRIPTION_ID,
