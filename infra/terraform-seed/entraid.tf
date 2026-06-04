@@ -40,13 +40,13 @@ resource "azurerm_role_assignment" "app_id_acr_pull" {
   principal_id         = azurerm_user_assigned_identity.ctf_app.principal_id
 }
 
-/*
+
 resource "azurerm_role_assignment" "app_id_subscription_reader" {
   scope                = data.azurerm_subscription.current.id
   role_definition_name = "Reader"
   principal_id         = azurerm_user_assigned_identity.ctf_app.principal_id
 }
-*/
+
 
 
 ## user managment role assignments for creating and pulling TAPs
