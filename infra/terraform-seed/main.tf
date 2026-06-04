@@ -130,6 +130,14 @@ resource "tfe_variable" "app_config_endpoint" {
   sensitive    = false
 }
 
+resource "tfe_variable" "graph_client_id" {
+  key          = "graph_client_id"
+  value        = azurerm_user_assigned_identity.ctf_app.client_id
+  category     = "terraform"
+  workspace_id = data.tfe_workspace.ctf.id
+  sensitive    = false
+}
+
 ## App Configuration for CTF API settings
 #
 resource "azurerm_app_configuration" "ctf" {
@@ -139,6 +147,12 @@ resource "azurerm_app_configuration" "ctf" {
   sku                 = "free" # free tier: 1000 req/day, plenty for config reads
 }
 
+resource "azurerm_app_configuration_key" "azure_tenant_id" {
+  configuration_store_id = azurerm_app_configuration.ctf.id
+  key                    = "AZURE_TENANT_ID"
+  value                  = data.azurerm_client_config.current.tenant_id
+}
+
 # Grant the CTF app identity read access
 resource "azurerm_role_assignment" "appconfig_reader" {
   scope                = azurerm_app_configuration.ctf.id
@@ -146,6 +160,7 @@ resource "azurerm_role_assignment" "appconfig_reader" {
   principal_id         = azurerm_user_assigned_identity.ctf_app.principal_id
 }
 
+# separate data privs needed to write to App Config from the API, so assign Data Owner role to the me 
 resource "azurerm_role_assignment" "appconfig_data_owner" {
   scope                = azurerm_app_configuration.ctf.id
   role_definition_name = "App Configuration Data Owner"
