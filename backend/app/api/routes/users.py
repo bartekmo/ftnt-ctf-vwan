@@ -160,7 +160,21 @@ async def recreate_taps(
             results.append({"upn": upn, "status": "error", "detail": str(e)})
             continue
 
-        # Store TAP against the team that owns this env_id
+        # Always store TAP in EnvTap keyed by env_id (persists regardless of team assignment)
+        from app.models.models import EnvTap
+        env_tap = await db.execute(select(EnvTap).where(EnvTap.env_id == env_id_str))
+        env_tap_row = env_tap.scalar_one_or_none()
+        if env_tap_row:
+            env_tap_row.azure_tap         = tap_data["tap"]
+            env_tap_row.azure_tap_expires = tap_data["expires_at"]
+        else:
+            db.add(EnvTap(
+                env_id=env_id_str,
+                azure_tap=tap_data["tap"],
+                azure_tap_expires=tap_data["expires_at"],
+            ))
+
+        # Also update the team record if one is assigned to this env_id
         team_result = await db.execute(
             select(Team).where(Team.env_id == env_id_int)
         )
@@ -168,10 +182,7 @@ async def recreate_taps(
         if team:
             team.azure_tap         = tap_data["tap"]
             team.azure_tap_expires = tap_data["expires_at"]
-            results.append({"upn": upn, "status": "ok", "env_id": env_id_str})
-        else:
-            # No team assigned yet — store on team when assigned later
-            results.append({"upn": upn, "status": "no_team", "env_id": env_id_str})
+        results.append({"upn": upn, "status": "ok", "env_id": env_id_str, "team": team.name if team else None})
 
     await db.flush()
     ok    = sum(1 for r in results if r["status"] == "ok")

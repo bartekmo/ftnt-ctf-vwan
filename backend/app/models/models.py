@@ -95,6 +95,21 @@ class User(Base):
 
 
 # ---------------------------------------------------------------------------
+# Env TAPs — stores TAPs keyed by env_id string so they persist even when
+# no team is assigned yet. _build_environment reads from Team first, falls
+# back to this table.
+# ---------------------------------------------------------------------------
+
+class EnvTap(Base):
+    __tablename__ = "env_taps"
+
+    env_id:          Mapped[str]               = mapped_column(String(8), primary_key=True)
+    azure_tap:       Mapped[str]               = mapped_column(String(64))
+    azure_tap_expires: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    updated_at:      Mapped[datetime]          = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
+# ---------------------------------------------------------------------------
 # Prober warnings
 # Warnings are upserted by probers each run — if the condition clears,
 # the warning is deleted. Keyed on (team_id, prober_name, warning_key).

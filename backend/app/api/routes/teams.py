@@ -51,7 +51,7 @@ def _team_out(team: Team) -> TeamOut:
     )
 
 
-async def _build_environment(team: Team) -> TeamEnvironmentOut:
+async def _build_environment(team: Team, db: AsyncSession) -> TeamEnvironmentOut:
     """
     Build the full environment data for a team by combining:
     - Deterministic values derived from env_id (ASNs, overlay ranges, credentials)
@@ -77,6 +77,13 @@ async def _build_environment(team: Team) -> TeamEnvironmentOut:
         pips_task, srv_task, branch_task, spoke_task,
         return_exceptions=True
     )
+
+    # TAP: prefer value stored on team, fall back to EnvTap keyed by env_id
+    from app.models.models import EnvTap
+    env_tap_res = await db.execute(select(EnvTap).where(EnvTap.env_id == ns))
+    env_tap_row = env_tap_res.scalar_one_or_none()
+    tap_value   = team.azure_tap         or (env_tap_row.azure_tap         if env_tap_row else None)
+    tap_expires = team.azure_tap_expires or (env_tap_row.azure_tap_expires if env_tap_row else None)
 
     # Safely unpack results — fall back to None if Azure call failed
     def safe(result, default):
@@ -111,8 +118,8 @@ async def _build_environment(team: Team) -> TeamEnvironmentOut:
         # Azure credentials
         azure_username=f"vwanlab{ns}@fortinetcloud.onmicrosoft.com",
         azure_password=_s().AZURE_STUDENT_PASSWORD,
-        azure_tap=team.azure_tap,
-        azure_tap_expires=team.azure_tap_expires,
+        azure_tap=tap_value,
+        azure_tap_expires=tap_expires,
         rg_name=f"{_s().RG_PREFIX}{ns}{_s().RG_SUFFIX}",
         # ASNs
         fgt_asn=_ASNS[n] if n < len(_ASNS) else 64512 + n,
@@ -239,7 +246,7 @@ async def get_my_environment(
     if not team:
         raise HTTPException(404, "Team not found")
 
-    return await _build_environment(team)
+    return await _build_environment(team, db)
 
 
 @router.get("/{team_id}", response_model=TeamDetailOut)
@@ -272,7 +279,7 @@ async def get_team_environment(
     team = result.scalar_one_or_none()
     if not team:
         raise HTTPException(404, "Team not found")
-    return await _build_environment(team)
+    return await _build_environment(team, db)
 
 
 # ---------------------------------------------------------------------------
