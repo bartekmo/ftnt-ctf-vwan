@@ -12,19 +12,11 @@ refs:
 
 ## Your lab environment
 
-Each team has a set of dedicated resources as well as access to global shared systems:
+Each team has a set of dedicated resources and can access some shared systems as well. Please verify you can access all systems used in this workshop before proceeding.
 
-- Shared Azure subscription accessed through your team user account
-- Your dedicated vWAN hub connected to shared global Virtual WAN
-- A **branch site** simulating an on-premises office — FortiGate + Windows desktop
-- A regional **spoke VNet** with a simple web server
-- shared FortiManager with dedicated ADOM per each team
+## Azure Portal
 
-You will access all resources using the same username and password with small exception of Azure which requires full principal name ("vwanlabXX@fortinetcloud.onmicrosoft.com").
-
-Your goal over the course of this workshop is to connect all these pieces together into a working SD-WAN deployment.
-
-## Log in to the Azure Portal
+Open the [Azure Portal](https://portal.azure.com) and log in using the credentials show below. If you are logged into your own Azure account make sure you switch to a different browser profile or use incognito mode.
 
 Use the credentials below to access your Azure environment.
 
@@ -32,15 +24,17 @@ Use the credentials below to access your Azure environment.
 <EnvVar field="azure_password" label="Password" secret />
 <EnvVar field="azure_tap" label="Temporary Access Pass" secret />
 
-> **First login:** use the **Temporary Access Pass** shown above instead of the password. On first sign-in Azure will prompt you to set up MFA — complete this step before proceeding. Subsequent logins use the password.
+> **First login:** use the **Temporary Access Pass** shown above instead of the password. Select the option to stay logged in.
 
-Open the [Azure Portal](https://portal.azure.com) and navigate to your resource group **<EnvVarInline field="rg_name" />** to familiarise yourself with the deployed resources.
+Once logged in go to **Resource Groups** and make sure you can see your resource group **<EnvVarInline field="rg_name" />**. Your view should be similar to this:
 
-### Log into FortiManager
+![Resource group in Azure portal](img/student-rg.png)
 
-Open the shared FortiManager UI
+### FortiManager
 
-Log in using your username and password.
+In a new browser tab open the shared FortiManager UI <EnvVar label="FortiManager UI" field="fmg" />
+
+Log in using your username and password visible in My Environment.
 
 ## Access the branch FortiGate
 
@@ -48,6 +42,7 @@ The branch FortiGate management interface is reachable at:
 
 <EnvVar field="branch_fgt_pip" label="Branch FortiGate PIP" />
 
-Open https://<EnvVarInline field="branch_fgt_pip" /> in your browser. Accept the self-signed certificate warning. Log in with username **admin** and the password provided by the trainer.
+Open https://<EnvVarInline field="branch_fgt_pip" /> in your browser. Accept the self-signed certificate warning. Log in with the same username and password as for FortiManager.
 
-> **Note:** The branch FortiGate is pre-configured with a basic WAN interface but has no VPN or BGP configuration yet. You will add that in the next challenges.
+> **Verify:** you can access (only) ADOM named after your hub. You should see one FortiGate there.
+

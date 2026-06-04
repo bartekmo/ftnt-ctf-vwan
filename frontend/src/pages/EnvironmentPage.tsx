@@ -138,9 +138,10 @@ export default function EnvironmentPage() {
 
         {/* FortiManager — live data from /api/infra/fmg */}
         <EnvCard icon={<Server size={18} color="var(--color-teal)" />} title="FortiManager">
-          <EnvRow label="Username" value={`vwanlab${env.env_id}`} onCopy={() => copy(`vwanlab${env.env_id}`, 'fmg_user')} copied={copied === 'fmg_user'} mono />
-          <EnvRow label="Serial" value={fmgSerial} mono onCopy={() => copy(fmgSerial, 'fmg_serial')} copied={copied === 'fmg_serial'} />
-          <EnvRow label="IP / FQDN" value={fmgIp} mono onCopy={() => copy(fmgIp, 'fmg')} copied={copied === 'fmg'} />
+          <EnvRow label="Username (FMG, RDP, branch)" value={`vwanlab${env.env_id}`} onCopy={() => copy(`vwanlab${env.env_id}`, 'fmg_user')} copied={copied === 'fmg_user'} mono />
+          <EnvRow label="Password" value={env.azure_password} secret onCopy={() => copy(env.azure_password, 'az_pass')} copied={copied === 'az_pass'} />
+          <EnvRow label="FortiManager Serial" value={fmgSerial} mono onCopy={() => copy(fmgSerial, 'fmg_serial')} copied={copied === 'fmg_serial'} />
+          <EnvRow label="FortiManager IP / FQDN" value={fmgIp} mono onCopy={() => copy(fmgIp, 'fmg')} copied={copied === 'fmg'} />
           {fmgIp && (
             <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-border)' }}>
               <a href={`https://${fmgIp}`} target="_blank" rel="noreferrer"
