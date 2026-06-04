@@ -8,7 +8,8 @@ Security model:
   2. All UPNs are enumerated from Graph, never taken from user input.
   3. Every UPN is validated against STUDENT_UPN_PATTERN before any write.
      If the pattern check fails the call is refused regardless of source.
-  4. The token is scoped to https://graph.microsoft.com/.default only.
+  4. Token acquired via azure-identity SDK (ManagedIdentityCredential) which
+     works correctly in ACA — raw IMDS HTTP calls time out in this environment.
 
 TAP parameters:
   - Lifetime: TAP_LIFETIME_MINUTES (default 1440 = 24h)
@@ -17,7 +18,6 @@ TAP parameters:
 """
 import re
 from datetime import datetime, timedelta, timezone
-from typing import Optional
 
 import httpx
 
@@ -33,41 +33,22 @@ STUDENT_UPN_PATTERN = re.compile(
 )
 
 GRAPH_BASE = "https://graph.microsoft.com/v1.0"
-TOKEN_URL  = "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token"
 
 
 async def _get_graph_token() -> str:
-    """Acquire a Graph token via managed identity client credentials."""
-    if not _s().GRAPH_CLIENT_ID:
+    """Acquire a Graph token via ManagedIdentityCredential (azure-identity SDK)."""
+    from azure.identity.aio import ManagedIdentityCredential
+
+    client_id = _s().GRAPH_CLIENT_ID
+    if not client_id:
         raise RuntimeError("GRAPH_CLIENT_ID not configured")
-    if not _s().AZURE_TENANT_ID:
-        raise RuntimeError("AZURE_TENANT_ID not configured")
 
-    # Use managed identity to get a Graph token.
-    # The GRAPH_CLIENT_ID identity must have the Graph app role assigned.
-    url = TOKEN_URL.format(tenant=_s().AZURE_TENANT_ID)
-    async with httpx.AsyncClient(timeout=10) as client:
-        resp = await client.post(url, data={
-            "grant_type":    "client_credentials",
-            "client_id":     _s().GRAPH_CLIENT_ID,
-            "scope":         "https://graph.microsoft.com/.default",
-            # Use managed identity federated credential — no secret needed
-            # when running in ACA with the identity attached
-            "client_assertion_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
-        })
-
-    # Fallback: use IMDS to get the token for the specific client_id
-    # This is the correct path for user-assigned MI in ACA
-    imds_url = (
-        "http://169.254.169.254/metadata/identity/oauth2/token"
-        f"?api-version=2018-02-01"
-        f"&resource=https%3A%2F%2Fgraph.microsoft.com%2F"
-        f"&client_id={_s().GRAPH_CLIENT_ID}"
-    )
-    async with httpx.AsyncClient(timeout=10) as client:
-        resp = await client.get(imds_url, headers={"Metadata": "true"})
-        resp.raise_for_status()
-        return resp.json()["access_token"]
+    credential = ManagedIdentityCredential(client_id=client_id)
+    try:
+        token = await credential.get_token("https://graph.microsoft.com/.default")
+        return token.token
+    finally:
+        await credential.close()
 
 
 def _assert_safe_upn(upn: str) -> None:
@@ -84,8 +65,8 @@ async def list_student_users() -> list[dict]:
     Returns list of {id, userPrincipalName} dicts.
     Only returns users whose UPN passes the pattern check.
     """
-    token = await _get_graph_token()
-    prefix = f"{_s().STUDENT_UPN_PREFIX}"
+    token  = await _get_graph_token()
+    prefix = _s().STUDENT_UPN_PREFIX
     domain = _s().STUDENT_UPN_DOMAIN
 
     async with httpx.AsyncClient(timeout=15) as client:
@@ -103,8 +84,7 @@ async def list_student_users() -> list[dict]:
         users = resp.json().get("value", [])
 
     # Double-check every result against the pattern — belt and suspenders
-    safe = [u for u in users if STUDENT_UPN_PATTERN.match(u["userPrincipalName"])]
-    return safe
+    return [u for u in users if STUDENT_UPN_PATTERN.match(u["userPrincipalName"])]
 
 
 async def create_tap(user_id: str, upn: str) -> dict:
@@ -117,7 +97,6 @@ async def create_tap(user_id: str, upn: str) -> dict:
 
     token = await _get_graph_token()
     now   = datetime.now(timezone.utc)
-    start = now.strftime("%Y-%m-%dT%H:%M:%SZ")
 
     async with httpx.AsyncClient(timeout=15) as client:
         resp = await client.post(
@@ -127,7 +106,7 @@ async def create_tap(user_id: str, upn: str) -> dict:
                 "Content-Type":  "application/json",
             },
             json={
-                "startDateTime":     start,
+                "startDateTime":     now.strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "lifetimeInMinutes": _s().TAP_LIFETIME_MINUTES,
                 "isUsableOnce":      False,
             },
@@ -135,6 +114,7 @@ async def create_tap(user_id: str, upn: str) -> dict:
         resp.raise_for_status()
         data = resp.json()
 
-    tap_code   = data.get("temporaryAccessPass", "")
-    expires_at = now + timedelta(minutes=_s().TAP_LIFETIME_MINUTES)
-    return {"tap": tap_code, "expires_at": expires_at}
+    return {
+        "tap":        data.get("temporaryAccessPass", ""),
+        "expires_at": now + timedelta(minutes=_s().TAP_LIFETIME_MINUTES),
+    }
