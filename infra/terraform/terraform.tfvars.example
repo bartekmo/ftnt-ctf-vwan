@@ -36,5 +36,3 @@ flex_tokens = "{\"hubs\": []}"
 # Shared password for all student Azure accounts
 azure_student_password = "StudentPassword123!"
 
-
-# app_id_resource_group = ""   # only set if app_id identity is in a different RG than the CTF deployment
