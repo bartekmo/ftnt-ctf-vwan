@@ -55,7 +55,6 @@ async def _build_environment(team: Team) -> TeamEnvironmentOut:
     - Static config from environment variables (FMG, FortiFlex tokens)
     """
     from app.services import azure_api
-    from app.core.config import azure_settings
     import json
 
     n = team.env_id or 0
@@ -94,7 +93,7 @@ async def _build_environment(team: Team) -> TeamEnvironmentOut:
     # FortiFlex tokens from env JSON
     flex_token1 = flex_token2 = None
     try:
-        tokens = json.loads(azure_settings.FLEX_TOKENS)
+        tokens = json.loads(_s().FLEX_TOKENS)
         hub_tokens = tokens["hubs"][n] if n < len(tokens["hubs"]) else []
         flex_token1 = hub_tokens[0] if len(hub_tokens) > 0 else None
         flex_token2 = hub_tokens[1] if len(hub_tokens) > 1 else None
@@ -107,10 +106,10 @@ async def _build_environment(team: Team) -> TeamEnvironmentOut:
         env_id=ns,
         # Azure credentials
         azure_username=f"vwanlab{ns}@fortinetcloud.onmicrosoft.com",
-        azure_password=azure_settings.AZURE_STUDENT_PASSWORD,
+        azure_password=_s().AZURE_STUDENT_PASSWORD,
         azure_tap=team.azure_tap,
         azure_tap_expires=team.azure_tap_expires,
-        rg_name=f"{azure_settings.RG_PREFIX}{ns}{azure_settings.RG_SUFFIX}",
+        rg_name=f"{_s().RG_PREFIX}{ns}{_s().RG_SUFFIX}",
         # ASNs
         fgt_asn=_ASNS[n] if n < len(_ASNS) else 64512 + n,
         azure_asn=65515,
@@ -138,9 +137,9 @@ async def _build_environment(team: Team) -> TeamEnvironmentOut:
         branch_win_pip=branch.get("branch_win_pip"),
         url_fgt_branch=f"https://{branch.get('branch_fgt_pip')}" if branch.get("branch_fgt_pip") else None,
         # FortiManager — from env vars
-        fmg_serial=azure_settings.FMG_SERIAL or None,
-        fmg_ip=azure_settings.FMG_IP or None,
-        url_fmg=f"https://{azure_settings.FMG_IP}" if azure_settings.FMG_IP else None,
+        fmg_serial=_s().FMG_SERIAL or None,
+        fmg_ip=_s().FMG_IP or None,
+        url_fmg=f"https://{_s().FMG_IP}" if _s().FMG_IP else None,
     )
 
 

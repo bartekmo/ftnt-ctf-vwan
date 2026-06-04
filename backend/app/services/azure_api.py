@@ -11,7 +11,12 @@ from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from typing import Optional
 
-from app.core.config import azure_settings
+import app.core.config as _config
+
+# Access via module reference so the re-instantiation in main.py lifespan
+# is visible here (a direct import would capture the empty initial instance).
+def _s():
+    return _config.azure_settings
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +38,7 @@ def _get_clients():
     credential = ManagedIdentityCredential(client_id=client_id) if client_id else ManagedIdentityCredential()
     network = NetworkManagementClient(
         credential=credential,
-        subscription_id=azure_settings.AZURE_SUBSCRIPTION_ID,
+        subscription_id=_s().AZURE_SUBSCRIPTION_ID,
     )
     return network
 
@@ -59,7 +64,7 @@ async def _run(fn, *args, **kwargs):
 
 async def get_hubs(vwan_name: str) -> list[dict]:
     """List all vWAN hubs belonging to the given vWAN, sorted by name."""
-    if not azure_settings.AZURE_SUBSCRIPTION_ID:
+    if not _s().AZURE_SUBSCRIPTION_ID:
         logger.debug("AZURE_SUBSCRIPTION_ID not set — skipping get_hubs")
         return []
     try:
@@ -81,7 +86,7 @@ async def get_hubs(vwan_name: str) -> list[dict]:
 async def get_nva_pips(hub_name: str) -> list[dict]:
     """Return list of {instance_name, pip} for each NVA NIC in the hub.
     Sorted by NVA name then instance name for stable ordering."""
-    if not azure_settings.AZURE_SUBSCRIPTION_ID:
+    if not _s().AZURE_SUBSCRIPTION_ID:
         return []
     try:
         def _call():
@@ -107,10 +112,10 @@ async def get_nva_pips(hub_name: str) -> list[dict]:
 
 async def get_spoke_server(index: str) -> dict[str, Optional[str]]:
     """Return private and public IP of the spoke server VM for the given env index."""
-    if not azure_settings.AZURE_SUBSCRIPTION_ID:
+    if not _s().AZURE_SUBSCRIPTION_ID:
         return {"private": None, "public": None}
 
-    rg = f"{azure_settings.RG_PREFIX}{index}{azure_settings.RG_SUFFIX}"
+    rg = f"{_s().RG_PREFIX}{index}{_s().RG_SUFFIX}"
     logger.info("get_spoke_server: index=%s rg=%s", index, rg)
 
     def _get_pip():
@@ -146,10 +151,10 @@ async def get_spoke_server(index: str) -> dict[str, Optional[str]]:
 
 async def get_branch(index: str) -> dict[str, Optional[str]]:
     """Return FGT PIP, Win PIP and branch subnet CIDR for the given env index."""
-    if not azure_settings.AZURE_SUBSCRIPTION_ID:
+    if not _s().AZURE_SUBSCRIPTION_ID:
         return {"branch_fgt_pip": None, "branch_win_pip": None, "branch_cidr": None}
 
-    rg = azure_settings.RG_BRANCHES
+    rg = _s().RG_BRANCHES
     logger.info("get_branch: index=%s rg=%s", index, rg)
 
     def _get_fgt_pip():
@@ -184,10 +189,10 @@ async def get_branch(index: str) -> dict[str, Optional[str]]:
 
 async def get_spoke(index: str) -> dict:
     """Return spoke VNet CIDR and peering count for the given env index."""
-    if not azure_settings.AZURE_SUBSCRIPTION_ID:
+    if not _s().AZURE_SUBSCRIPTION_ID:
         return {"spoke_cidr": None, "spoke_peered": False}
 
-    rg = f"{azure_settings.RG_PREFIX}{index}{azure_settings.RG_SUFFIX}"
+    rg = f"{_s().RG_PREFIX}{index}{_s().RG_SUFFIX}"
     logger.info("get_spoke: index=%s rg=%s", index, rg)
 
     def _get_vnet():

@@ -16,7 +16,10 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.core.config import azure_settings
+import app.core.config as _config
+
+def _s():
+    return _config.azure_settings
 from app.services import azure_api
 from app.db.session import get_db
 from app.models.models import User, Team
@@ -30,16 +33,16 @@ router = APIRouter(prefix="/infra", tags=["infra"])
 async def diagnostic(_: User = Depends(get_current_trainer)):
     """Returns resolved config values and the exact ARM URLs that would be called for env 01.
     Use this to verify env vars are set correctly without waiting for ARM timeouts."""
-    sub = azure_settings.AZURE_SUBSCRIPTION_ID
-    rg = f"{azure_settings.RG_PREFIX}01{azure_settings.RG_SUFFIX}"
+    sub = _s().AZURE_SUBSCRIPTION_ID
+    rg = f"{_s().RG_PREFIX}01{_s().RG_SUFFIX}"
     base = f"https://management.azure.com/subscriptions/{sub}"
     return {
         "subscription_id": sub or "*** NOT SET ***",
-        "vwan_name":        azure_settings.VWAN_NAME or "*** NOT SET ***",
-        "rg_prefix":        azure_settings.RG_PREFIX,
-        "rg_suffix":        azure_settings.RG_SUFFIX,
-        "rg_branches":      azure_settings.RG_BRANCHES or "*** NOT SET ***",
-        "fmg_ip":           azure_settings.FMG_IP or "*** NOT SET ***",
+        "vwan_name":        _s().VWAN_NAME or "*** NOT SET ***",
+        "rg_prefix":        _s().RG_PREFIX,
+        "rg_suffix":        _s().RG_SUFFIX,
+        "rg_branches":      _s().RG_BRANCHES or "*** NOT SET ***",
+        "fmg_ip":           _s().FMG_IP or "*** NOT SET ***",
         "sample_arm_urls": {
             "spoke_pip": f"{base}/resourceGroups/{rg}/providers/Microsoft.Network/publicIpAddresses/spoke01Srv-pip?api-version=2022-07-01",
             "spoke_nic": f"{base}/resourceGroups/{rg}/providers/Microsoft.Network/networkInterfaces/spoke01Srv-nic1?api-version=2022-07-01",
@@ -120,17 +123,17 @@ async def _require_own_index(index: str, user: User, db: AsyncSession) -> None:
 async def get_prefix(_: User = Depends(get_current_user)):
     """Resource group prefix and suffix used to construct per-team RG names."""
     return PrefixOut(
-        prefix=azure_settings.RG_PREFIX,
-        suffix=azure_settings.RG_SUFFIX,
+        prefix=_s().RG_PREFIX,
+        suffix=_s().RG_SUFFIX,
     )
 
 
 @router.get("/hubs", response_model=HubsOut)
 async def list_hubs(_: User = Depends(get_current_user)):
     """List all vWAN hubs belonging to the configured vWAN."""
-    if not azure_settings.VWAN_NAME:
+    if not _s().VWAN_NAME:
         raise HTTPException(503, "VWAN_NAME not configured")
-    hubs = await azure_api.get_hubs(azure_settings.VWAN_NAME)
+    hubs = await azure_api.get_hubs(_s().VWAN_NAME)
     return HubsOut(hubs=[HubOut(**h) for h in hubs])
 
 
@@ -141,9 +144,9 @@ async def get_hub(
 ):
     """Return name and location of a single vWAN hub. Used by the environment
     page to display the region for the team's hub without fetching all hubs."""
-    if not azure_settings.VWAN_NAME:
+    if not _s().VWAN_NAME:
         raise HTTPException(503, "VWAN_NAME not configured")
-    hubs = await azure_api.get_hubs(azure_settings.VWAN_NAME)
+    hubs = await azure_api.get_hubs(_s().VWAN_NAME)
     hub = next((h for h in hubs if h["name"] == hub_name), None)
     if not hub:
         raise HTTPException(404, f"Hub '{hub_name}' not found")
@@ -187,7 +190,7 @@ async def get_hub_flex(
     index = _hub_index(hub_name)
     await _require_own_index(index, user, db)
     try:
-        tokens = json.loads(azure_settings.FLEX_TOKENS)
+        tokens = json.loads(_s().FLEX_TOKENS)
         hub_tokens = tokens["hubs"][int(index)]
     except (json.JSONDecodeError, KeyError, IndexError, ValueError) as e:
         logger.warning("FLEX_TOKENS parse error for index %s: %s", index, e)
@@ -222,6 +225,6 @@ async def get_spoke(
 @router.get("/fmg", response_model=FmgOut)
 async def get_fmg(_: User = Depends(get_current_user)):
     """FortiManager serial and IP (shared across all teams)."""
-    if not azure_settings.FMG_SERIAL or not azure_settings.FMG_IP:
+    if not _s().FMG_SERIAL or not _s().FMG_IP:
         raise HTTPException(503, "FortiManager details not configured")
-    return FmgOut(serial=azure_settings.FMG_SERIAL, ip=azure_settings.FMG_IP)
+    return FmgOut(serial=_s().FMG_SERIAL, ip=_s().FMG_IP)

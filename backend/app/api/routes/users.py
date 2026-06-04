@@ -110,14 +110,13 @@ async def tap_preview(
 ):
     """Preview: list student accounts that would get new TAPs. No writes."""
     from app.services.graph_service import list_student_users
-    from app.core.config import azure_settings
-    if not azure_settings.GRAPH_CLIENT_ID:
+    if not _s().GRAPH_CLIENT_ID:
         raise HTTPException(503, "GRAPH_CLIENT_ID not configured")
     users = await list_student_users()
     return {
         "count": len(users),
         "users": [u["userPrincipalName"] for u in users],
-        "tap_lifetime_minutes": azure_settings.TAP_LIFETIME_MINUTES,
+        "tap_lifetime_minutes": _s().TAP_LIFETIME_MINUTES,
     }
 
 
@@ -135,9 +134,8 @@ async def recreate_taps(
     """
     import re
     from app.services.graph_service import list_student_users, create_tap
-    from app.core.config import azure_settings
 
-    if not azure_settings.GRAPH_CLIENT_ID:
+    if not _s().GRAPH_CLIENT_ID:
         raise HTTPException(503, "GRAPH_CLIENT_ID not configured")
 
     users = await list_student_users()

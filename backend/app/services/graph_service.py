@@ -21,7 +21,10 @@ from typing import Optional
 
 import httpx
 
-from app.core.config import azure_settings
+import app.core.config as _config
+
+def _s():
+    return _config.azure_settings
 
 # Only UPNs matching this pattern will ever be touched — hard safeguard
 STUDENT_UPN_PATTERN = re.compile(
@@ -35,18 +38,18 @@ TOKEN_URL  = "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token"
 
 async def _get_graph_token() -> str:
     """Acquire a Graph token via managed identity client credentials."""
-    if not azure_settings.GRAPH_CLIENT_ID:
+    if not _s().GRAPH_CLIENT_ID:
         raise RuntimeError("GRAPH_CLIENT_ID not configured")
-    if not azure_settings.AZURE_TENANT_ID:
+    if not _s().AZURE_TENANT_ID:
         raise RuntimeError("AZURE_TENANT_ID not configured")
 
     # Use managed identity to get a Graph token.
     # The GRAPH_CLIENT_ID identity must have the Graph app role assigned.
-    url = TOKEN_URL.format(tenant=azure_settings.AZURE_TENANT_ID)
+    url = TOKEN_URL.format(tenant=_s().AZURE_TENANT_ID)
     async with httpx.AsyncClient(timeout=10) as client:
         resp = await client.post(url, data={
             "grant_type":    "client_credentials",
-            "client_id":     azure_settings.GRAPH_CLIENT_ID,
+            "client_id":     _s().GRAPH_CLIENT_ID,
             "scope":         "https://graph.microsoft.com/.default",
             # Use managed identity federated credential — no secret needed
             # when running in ACA with the identity attached
@@ -59,7 +62,7 @@ async def _get_graph_token() -> str:
         "http://169.254.169.254/metadata/identity/oauth2/token"
         f"?api-version=2018-02-01"
         f"&resource=https%3A%2F%2Fgraph.microsoft.com%2F"
-        f"&client_id={azure_settings.GRAPH_CLIENT_ID}"
+        f"&client_id={_s().GRAPH_CLIENT_ID}"
     )
     async with httpx.AsyncClient(timeout=10) as client:
         resp = await client.get(imds_url, headers={"Metadata": "true"})
@@ -82,8 +85,8 @@ async def list_student_users() -> list[dict]:
     Only returns users whose UPN passes the pattern check.
     """
     token = await _get_graph_token()
-    prefix = f"{azure_settings.STUDENT_UPN_PREFIX}"
-    domain = azure_settings.STUDENT_UPN_DOMAIN
+    prefix = f"{_s().STUDENT_UPN_PREFIX}"
+    domain = _s().STUDENT_UPN_DOMAIN
 
     async with httpx.AsyncClient(timeout=15) as client:
         resp = await client.get(
@@ -125,7 +128,7 @@ async def create_tap(user_id: str, upn: str) -> dict:
             },
             json={
                 "startDateTime":     start,
-                "lifetimeInMinutes": azure_settings.TAP_LIFETIME_MINUTES,
+                "lifetimeInMinutes": _s().TAP_LIFETIME_MINUTES,
                 "isUsableOnce":      False,
             },
         )
@@ -133,5 +136,5 @@ async def create_tap(user_id: str, upn: str) -> dict:
         data = resp.json()
 
     tap_code   = data.get("temporaryAccessPass", "")
-    expires_at = now + timedelta(minutes=azure_settings.TAP_LIFETIME_MINUTES)
+    expires_at = now + timedelta(minutes=_s().TAP_LIFETIME_MINUTES)
     return {"tap": tap_code, "expires_at": expires_at}
