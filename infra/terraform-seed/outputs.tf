@@ -24,3 +24,7 @@ output "oidc_github_actions_client_id" {
   description = "Client ID of the Azure AD application for GitHub Actions OIDC authentication."
   value       = azurerm_user_assigned_identity.github_actions.client_id
 }
+
+output "app_config_endpoint" {
+  value = azurerm_app_configuration.ctf.endpoint
+}

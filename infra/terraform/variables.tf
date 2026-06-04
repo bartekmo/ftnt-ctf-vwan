@@ -190,3 +190,8 @@ variable "app_id_name" {
   description = "Name of the user-assigned managed identity used by the container apps and jobs. Output from the infra/terraform-seed module."
   type        = string
 }
+
+variable "app_config_endpoint" {
+  description = "Endpoint URL of the Azure App Configuration instance. Output from the infra/terraform-seed module."
+  type        = string
+}

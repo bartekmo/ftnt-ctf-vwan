@@ -30,6 +30,7 @@ provider "azurerm" {
 
 provider "azuread" {}
 
+data "azurerm_client_config" "current" {}
 
 resource "azurerm_resource_group" "infra" {
   name     = var.rg_name
@@ -115,4 +116,34 @@ resource "tfe_variable" "app_id_name" {
   category     = "terraform"
   workspace_id = data.tfe_workspace.ctf.id
   sensitive    = false
+}
+
+resource "tfe_variable" "app_config_endpoint" {
+  key          = "app_config_endpoint"
+  value        = azurerm_app_configuration.ctf.endpoint
+  category     = "terraform"
+  workspace_id = data.tfe_workspace.ctf.id
+  sensitive    = false
+}
+
+## App Configuration for CTF API settings
+#
+resource "azurerm_app_configuration" "ctf" {
+  name                = "${var.prefix}-ctf-config"
+  resource_group_name = azurerm_resource_group.infra.name
+  location            = azurerm_resource_group.infra.location
+  sku                 = "free" # free tier: 1000 req/day, plenty for config reads
+}
+
+# Grant the CTF app identity read access
+resource "azurerm_role_assignment" "appconfig_reader" {
+  scope                = azurerm_app_configuration.ctf.id
+  role_definition_name = "App Configuration Data Reader"
+  principal_id         = azurerm_user_assigned_identity.ctf_app.principal_id
+}
+
+resource "azurerm_role_assignment" "appconfig_data_owner" {
+  scope                = azurerm_app_configuration.ctf.id
+  role_definition_name = "App Configuration Data Owner"
+  principal_id         = data.azurerm_client_config.current.object_id
 }

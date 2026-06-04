@@ -70,6 +70,11 @@ resource "azurerm_container_app" "api" {
         value = "production"
       }
       env {
+        name  = "APP_CONFIG_ENDPOINT"
+        value = var.app_config_endpoint # passed from seed output
+      }
+
+      env {
         name  = "AZURE_STUDENT_PASSWORD"
         value = var.azure_student_password
       }
@@ -86,10 +91,7 @@ resource "azurerm_container_app" "api" {
         name  = "AZURE_SUBSCRIPTION_ID"
         value = data.azurerm_client_config.current.subscription_id
       }
-      env {
-        name  = "VWAN_NAME"
-        value = var.vwan_name
-      }
+
       env {
         name  = "RG_PREFIX"
         value = var.rg_prefix
@@ -99,26 +101,10 @@ resource "azurerm_container_app" "api" {
         value = var.rg_suffix
       }
       env {
-        name  = "RG_BRANCHES"
-        value = var.rg_branches
-      }
-      env {
-        name  = "FMG_SERIAL"
-        value = var.fmg_serial
-      }
-      env {
-        name  = "FMG_IP"
-        value = var.fmg_ip
-      }
-      env {
         name        = "PROBER_SECRET"
         secret_name = "prober-secret"
       }
       # Sensitive: FortiFlex tokens JSON stored as a Container Apps secret
-      env {
-        name        = "FLEX_TOKENS"
-        secret_name = "flex-tokens"
-      }
       # CORS origin is the frontend's public FQDN — derived from the
       # environment default domain which is known at plan time.
       env {
@@ -213,6 +199,10 @@ resource "azurerm_container_app" "frontend" {
       env {
         name  = "API_HOST"
         value = "${azurerm_container_app.api.name}.internal.${azurerm_container_app_environment.ctf.default_domain}"
+      }
+      env {
+        name  = "APP_CONFIG_ENDPOINT"
+        value = var.app_config_endpoint # passed from seed output
       }
     }
   }
