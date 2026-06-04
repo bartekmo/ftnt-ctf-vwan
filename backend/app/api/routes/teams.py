@@ -12,6 +12,10 @@ from app.schemas.schemas import (
     MoveUserRequest, UserOut, TeamEnvironmentOut
 )
 from app.api.deps import get_current_user, get_current_trainer
+import app.core.config as _config
+
+def _s():
+    return _config.azure_settings
 
 router = APIRouter(prefix="/teams", tags=["teams"])
 

@@ -8,6 +8,10 @@ from app.models.models import User, UserRole, Team
 from app.schemas.schemas import UserListOut
 from app.api.deps import get_current_trainer
 from app.core.security import hash_password
+import app.core.config as _config
+
+def _s():
+    return _config.azure_settings
 
 router = APIRouter(prefix="/users", tags=["users"])
 
