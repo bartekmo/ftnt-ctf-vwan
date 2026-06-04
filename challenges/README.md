@@ -76,11 +76,15 @@ Available field names come from the `TeamEnvironmentOut` schema:
 
 ### Images
 
-Place images in `img/` inside the challenge directory and reference them normally:
+Place images in `img/` inside the challenge directory. Reference them using the
+absolute public path (relative paths do not work from compiled MDX bundles):
 
 ```mdx
-![Alt text](./img/my-diagram.png)
+![Alt text](/challenges/00-access-azure/img/my-diagram.png)
 ```
+
+The Docker build copies all `challenges/*/img/` files into the frontend `public/`
+directory so they are served as static assets.
 
 ## Adding a new challenge
 

@@ -13,6 +13,9 @@ RUN npm ci --include=dev
 COPY frontend/ .
 COPY challenges/ ../challenges/
 
+# Copy challenge images into public/ so Vite includes them as static assets
+RUN find ../challenges -path "*/img/*" -type f | while read f; do \n      rel=$(echo "$f" | sed "s|../challenges/||"); \n      mkdir -p "public/challenges/$(dirname $rel)"; \n      cp "$f" "public/challenges/$rel"; \n    done
+
 RUN npm run build
 
 FROM nginx:alpine
