@@ -12,7 +12,42 @@ refs:
 
 ## Deploy NVAs
 
-Use Azure Marketplace to deploy FortiGate NVAs into your vWAN hub. Use "Fortinet FortiGate Security for Azure Virtual WAN" offer from Marketplace 
-and remember to use data from your environment (region, resource group name, etc.) when deploying.
+Use Azure Marketplace to deploy FortiGate NVAs into your vWAN hub. Use "Fortinet FortiGate Security for Azure Virtual WAN" offer from Marketplace.
 
-***Important:*** Do use your hub number (eg. "hub01") as FortiGate name prefix and as application name.
+### Basics
+
+Use data from your environment (region, resource group name, etc.) when deploying. You can use any FortiGate username and password, but remember that Azure restricts username and *"admin"* is not allowed.
+
+<EnvVar label="Resource group" field="rg_name" />
+<EnvVar label="Region" field="region" />
+<EnvVar label="FortiGate Name Prefix" field="hub_name" />
+<EnvVar label="Application Name" field="hub_name" />
+
+> Note: Add your **hub name** (<EnvVarInline />) as a suffix at the end of *Managed Resource Group*.
+
+![page 1](basic.png)
+
+### FortiGate in Virtual WAN Specific Parameters
+
+On the next page provide further details for your deployment:
+
+<EnvVar label="Virtual WAN Hub" field="hub_name" />
+<EnvVar label="Scale unit" value="2 Scale Units - 1.0 Gbps" />
+<EnvVar label="FortiGate BGP ASN" field="fgt_asn" />
+<EnvVar label="FortiManager IP address" field="fmg_ip" />
+<EnvVar label="FortiManager Serial Number" field="fmg_serial" />
+<EnvVar label="Enable Internet Edge Inbound" value="enabled" />
+
+![page 2](specific-parameters.png)
+
+Click through the next page (**Configuration Review**) leaving the defaults unchanged.
+
+### Managed Application Settings
+
+In "User assigned managed identity" click the **+ Add** button and select **vwan-deployer** identity
+
+![](deploy-identity.png)
+
+### Review + create
+
+In *Review + create* accept the Co-Admin Access Permission hit **Create**

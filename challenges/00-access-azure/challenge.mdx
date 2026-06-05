@@ -3,11 +3,6 @@ title: "Verify access to environment"
 category: misc
 points: 0
 scored: false
-refs:
-  - label: "Azure Portal"
-    url: "https://portal.azure.com"
-  - label: "FortiGate vWAN Deployment Guide"
-    url: "https://docs.fortinet.com/document/fortigate-public-cloud/7.4.0/azure-vwan-sd-wan-ngfw-deployment-guide/355051/deploying-vwan-on-azure"
 ---
 
 ## Your lab environment
@@ -28,16 +23,18 @@ Use the credentials below to access your Azure environment.
 
 Once logged in go to **Resource Groups** and make sure you can see your resource group **<EnvVarInline field="rg_name" />**. Your view should be similar to this:
 
-![Resource group in Azure portal](./img/student-rg.png)
+![Resource group in Azure portal](student-rg.png)
 
 ## FortiManager
 
 In a new browser tab open the shared FortiManager UI 
 <EnvVar label="FortiManager UI" field="fmg_ip" />
 
-Log in using your username and password visible in My Environment.
+Accept the certificate warning and log in using your username and password visible in My Environment.
 
 > **Verify:** you should see only the ADOM named after your hub with one FortiGate in it.
+
+![FortiManager](fmg.png)
 
 ## Branch FortiGate
 
@@ -51,5 +48,9 @@ Open https://<EnvVarInline field="branch_fgt_pip" /> in your browser. Accept the
 
 Use RDP client installed in your OS (tsc on Windows/Windows App on MacOS) or any custom RDP client to connect directly to Windows desktop in your branch office. Keep in mind only one person from your team can be logged in at the same moment.
 
+The credentials are the same as for FortiManager and branch FortiGate.
+
 <EnvVar field="branch_win_pip" label="Winows desktop" />
+
+![Branch Windows desktop](windows.png)
 
