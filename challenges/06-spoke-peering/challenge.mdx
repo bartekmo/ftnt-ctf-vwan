@@ -5,12 +5,14 @@ points: 100
 scored: true
 prober: check_spoke_peered
 hints:
-  - text: "VNet peering to a vWAN hub is done from the Virtual Hub blade in the Azure Portal, not from the VNet itself. Go to your Virtual Hub → Virtual network connections."
+  - text: "If you cannot find the Virtual WAN you can user the search bar at the top of Azure portal. Type in 'vwan', pick 'Virtual WANs' from the list of services and click 'vwanlab-vwan-common'. Or just pick the 'vwanlab-vwan-common' resource from the search results. You can also find it in the resource list after opening vwanlab-common resource group."
     cost: 15
   - text: "When adding the peering, make sure 'Propagate default route' is disabled for now — you will control routing explicitly in the next challenge."
     cost: 20
 refs:
-  - label: "Connect a VNet to a vWAN hub"
+  - label: "Fortinet docs: Peering a vNET to the virtual WAN hub"
+    url: "https://docs.fortinet.com/document/fortigate-public-cloud/7.4.0/azure-vwan-sd-wan-ngfw-deployment-guide/178603/peering-a-vnet-to-the-virtual-wan-hub"
+  - label: "Azure docs: Connect a VNet to a vWAN hub"
     url: "https://learn.microsoft.com/en-us/azure/virtual-wan/howto-connect-vnet-hub"
 ---
 
@@ -29,30 +31,26 @@ The diagram on your **My Environment** page will update to show the peering conn
 
 In the Azure Portal, navigate to:
 
-**Virtual WANs → your vWAN → Hubs → your hub**
+**Virtual WANs → Connectivity → Virtual network connections**
 
-### 2. Add a VNet connection
+### 2. Click "Add connection"
 
-Click **Virtual network connections** in the left menu, then **+ Add connection**.
+### 3. Select your hub, your resource group and your spoke vNet.
 
 | Parameter | Value |
 |-----------|-------|
-| Connection name | `spoke<EnvVarInline field="env_id" />-connection` |
+| Connection name | `spoke<EnvVarInline field="env_id" />-connection` (or any other name that works for you) |
 | Hubs | your hub |
 | Subscription | your subscription |
+| Resource Group | your resource group (vwanlab-student-XX)
 | Virtual network | `spoke<EnvVarInline field="env_id" />Vnet` |
 | Propagate default route | No |
+| Associate Route Table | Default |
+
+![](vnet-connection.png)
 
 Click **Create** and wait for the connection to show **Succeeded** (typically 1–3 minutes).
 
 ### 3. Verify peering state
 
-The **My Environment** page diagram should now show the spoke connected to the hub. You can also verify from the CLI on one of the hub NVAs:
-
-```
-get router info bgp network
-```
-
-You should see the spoke CIDR <EnvVarInline field="spoke_cidr" /> in the routing table.
-
-> **This challenge is scored.** The prober checks that the VNet peering is in **Connected** state before awarding points.
+The **My Environment** page diagram should now show the spoke connected to the hub.

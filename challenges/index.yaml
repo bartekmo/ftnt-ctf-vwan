@@ -24,7 +24,7 @@ challenges:
 
   - id: 01-deploy-nvas
     title: "Deploy the FortiGate NVAs"
-    category: misc
+    category: Azure
     points: 150
     scored: true
     prober: check_nva_deployed
@@ -32,10 +32,26 @@ challenges:
 
   - id: 02-license-nvas
     title: "License the FortiGate NVAs"
-    category: misc
-    points: 50
+    category: FortiGate
+    points: 100
     scored: true
     prober: check_nva_licensed
+    visible: true
+
+  - id: 08-intent-routing
+    title: "Azure intent routing configuration"
+    category: Azure vWAN
+    points: 100
+    scored: true
+    prober: check_fmg_connection
+    visible: true
+
+  - id: 06-spoke-peering
+    title: "Peer the Spoke VNet"
+    category: Azure vWAN
+    points: 100
+    scored: true
+    prober: check_spoke_peered
     visible: true
 
   - id: 03-configure-bgp
@@ -60,14 +76,6 @@ challenges:
     points: 150
     scored: true
     prober: check_branch_bgp
-    visible: true
-
-  - id: 06-spoke-peering
-    title: "Peer the Spoke VNet"
-    category: networking
-    points: 100
-    scored: true
-    prober: check_spoke_peered
     visible: true
 
   - id: 07-spoke-routing

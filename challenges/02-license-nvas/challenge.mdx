@@ -4,11 +4,6 @@ category: misc
 points: 100
 scored: true
 prober: check_nva_licensed
-hints:
-  - text: "In FortiFlex, tokens are consumed automatically when you enter them on the FortiGate. Navigate to System > FortiGuard on each NVA and enter the token in the License section."
-    cost: 15
-  - text: "You need to apply a different token to each NVA. Token 1 goes to NVA 1, Token 2 goes to NVA 2."
-    cost: 25
 refs:
   - label: "FortiFlex documentation"
     url: "https://docs.fortinet.com/document/fortiflex/latest/administration-guide"
@@ -16,36 +11,33 @@ refs:
     url: "https://docs.fortinet.com/document/fortigate/7.4.0/administration-guide/997216"
 ---
 
-Before the FortiGate NVAs can pass traffic, they must be licensed using **FortiFlex** tokens. Each NVA requires its own token.
+Before the FortiGate NVAs can pass traffic, they must be licensed using. In this lab we are using **FortiFlex** licensing. Licenses are already generated and you will not be accessing FortiFlex portal. The license tokens for your two FortiGates are as below. If the do not work, please ask workshops trainer for assistance.
 
 ## Your FortiFlex tokens
 
-<EnvVar field="flex_token1" label="FortiFlex Token — NVA 1" secret />
-<EnvVar field="flex_token2" label="FortiFlex Token — NVA 2" secret />
+<EnvVar field="flex_token1" label="FortiFlex Token — NVA 1" />
+<EnvVar field="flex_token2" label="FortiFlex Token — NVA 2" />
 
 ## NVA management access
 
+You can access your FortiGates using SSH or Web UI for this task. You configured your credentials during deployment in the previous step.
+
 <NvaCard />
 
-Log in with username **admin** and the password provided by the trainer.
+## Licensing using Web UI
 
-## Steps
+Connect to each FortiGate web ui using the links above. After a short while you will be asked for license. Select **FortiFlex token** and paste token from the list above (note: each token can be used only once).
 
-1. Open https://<EnvVarInline field="fgt_nva1_pip" /> in your browser
-2. Navigate to **System → FortiGuard**
-3. Under **License Information**, click **Enter License**
-4. Paste **Token 1** from above and confirm
-5. Wait for the license to activate — the status should change to **Licensed**
-6. Repeat steps 1–5 for NVA 2 using **Token 2** and the address https://<EnvVarInline field="fgt_nva2_pip" />
+![](lic-web.png)
+
+## Licensing using SSH 
+
+After connecting run the command `execute vm-license` followed by the FortiFlex token. The appliance will reboot to activate the license.
+
+![](lic-ssh.png)
+
 
 ## Verification
 
-Once both NVAs are licensed, run the following CLI command on each to confirm:
-
-```
-get system status
-```
-
-Look for `License Status: Valid` in the output.
-
-> **This challenge is scored.** The prober checks that both NVAs have a valid license before awarding points.
+Once both NVAs are licensed they will connect to FortiManager. Lab automation will authorize them and move to your ADOM. Please verify if your NVAs show up in your FortiManager ADOM.
+![](fmg.png)

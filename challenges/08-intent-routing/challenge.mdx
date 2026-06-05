@@ -1,0 +1,22 @@
+---
+title: "Enabling Azure intent routing"
+category: networking
+points: 100
+scored: true
+prober: check_intent_routing
+refs:
+  - label: "Fortinet docs: Enabling Azure routing policy"
+    url: "https://docs.fortinet.com/document/fortigate-public-cloud/7.4.0/azure-vwan-sd-wan-ngfw-deployment-guide/340748/enabling-azure-routing-policy"
+  - label: "Azure docs: Configure Virtual WAN Hub routing intent and routing policies"
+    url: "https://learn.microsoft.com/en-us/azure/virtual-wan/how-to-routing-policies"
+---
+
+## Enabling Azure intent routing
+
+In Azure web UI go to **Virtual WANs** → **vwanlab-vwan-common** → **Connectivity** → **Hubs** → ***your hub***
+
+In **Routing** → **Routing Intent and Routing Policies** enable routing of **Private traffic** through your *Network Virtual Appliance*
+
+> Note: do not change settings for **Internet traffic**. Leave it empty.
+
+![](route-intent.png)

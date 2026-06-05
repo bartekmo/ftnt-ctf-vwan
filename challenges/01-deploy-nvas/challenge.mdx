@@ -16,14 +16,14 @@ Use Azure Marketplace to deploy FortiGate NVAs into your vWAN hub. Use "Fortinet
 
 ### Basics
 
-Use data from your environment (region, resource group name, etc.) when deploying. You can use any FortiGate username and password, but remember that Azure restricts username and *"admin"* is not allowed.
+Use data from your environment (region, resource group name, etc.) when deploying. You can use any FortiGate username and password, but remember that Azure restricts username and *"admin"* is not allowed. You can also copy the same credentials you use for other systems in this lab.
 
 <EnvVar label="Resource group" field="rg_name" />
 <EnvVar label="Region" field="region" />
 <EnvVar label="FortiGate Name Prefix" field="hub_name" />
 <EnvVar label="Application Name" field="hub_name" />
 
-> Note: Add your **hub name** (<EnvVarInline />) as a suffix at the end of *Managed Resource Group*.
+> Note: Add your **hub name** (<EnvVarInline field="hub_name" />) as a suffix at the end of *Managed Resource Group*.
 
 ![page 1](basic.png)
 

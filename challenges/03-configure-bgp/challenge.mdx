@@ -20,9 +20,11 @@ refs:
     url: "https://learn.microsoft.com/en-us/azure/virtual-wan/scenario-bgp-peering-hub"
 ---
 
-For the FortiGate NVAs in the vWAN hub to route traffic, they must establish BGP sessions with the Azure vWAN Virtual Router. This challenge requires you to configure BGP on both NVAs so that both sessions show as **Connected** in Azure.
-
 ## Overview
+
+Your FortiGates in vWAN hub are already partially preconfigured, but they are missing additional routing information which could not be obtained during bootstrap. In this step you will configure static routes to enable
+- internal load balancer health probes
+- BGP peering with Azure Route Service in vWAN
 
 The Azure vWAN hub runs a Virtual Router with two BGP peer endpoints (one per availability zone). Each FortiGate NVA must establish a BGP session with both endpoints to provide redundancy.
 
@@ -34,78 +36,47 @@ FortiGate NVA 2 ──[eBGP]──► Hub BGP Peer 1 (AS 65515)
                 └─[eBGP]──► Hub BGP Peer 2 (AS 65515)
 ```
 
-## Your NVAs
+
+### Your NVAs
 
 <NvaCard />
 
-## Your BGP parameters
+### (optional) Diagnose the problem
 
-<EnvVar field="fgt_asn" label="Your FortiGate Local AS" />
-<EnvVar field="azure_asn" label="Azure vWAN Remote AS" />
+If you want to see where exactly is the problem you are about to fix follow this section. It is not necessary to complete the lab.
 
-## Steps
+1. Connect to one of your FortiGates CLI (either through FortiManager, FortiGate UI or SSH)
+2. Run the following command to see the BGP status: `get router info bgp summary` - you will notice two BGP peers, the state will indicate the session is not working (eg. *State: Active*)
+3. Run `diag sniffer packet any "port 179" 4` to see that Azure vWAN is trying to establish BGP sessions with your FortiGate on port2/sriovslv1, but the TCP SYN packets are dropped
+3. Run `diag sniffer packet any "port 8008" 4` to reveal health checks reaching your FortiGate. You will notice that health checks on port1/sriovslv0 are responded to, but those on port2/sriovslv1 are not
 
-### 1. Find the hub BGP peer addresses
+All the problems above will be fixed using static routing.
 
-In the Azure Portal, navigate to:
+## Find the gateway address and virtual hub address space
 
-**Virtual WANs → your vWAN → Hubs → your hub → BGP Peers**
+As all failing connections are on port2 you need to first find the correct gateway address to use in your configuration.
 
-Note the two peer IP addresses (typically in the `192.168.x.x` range) and their AS number (65515).
+1. Open CLI on any of your FortiGates (their routes will be identical)
+2. Use command `get router info routing-table all` to reveal CIDR of the subnet connected to port2
+3. Your port2 subnet gateway address is the first address of the subnet
+4. In Azure web console open your hub overview and copy the CIDR of ***Private address space*** of your hub
 
-### 2. Configure BGP on NVA 1
+![](route-static.png)
 
-Open the management interface of NVA 1 at <EnvVarInline field="url_fgt_nva1" />
+## Preparing a provisioning template
 
-Navigate to **Network → BGP** and configure:
+FortiGates in vWAN hub are designed to be managed using FortiManager. You will use **provisioning templates** to configure routing.
 
-| Parameter | Value |
-|-----------|-------|
-| Router ID | NVA management IP |
-| Local AS | <EnvVarInline field="fgt_asn" /> |
+1. Open FortiManager web console
+2. in **Device Manager** go to **Provisioning templates** and create a new static routing template
+3. Add a static route to your virtual hub private address space you discovered in earlier step. Use port2 and its subnet gateway. 
+4. Add a static route to **168.63.129.16** host (this address is always used for health probes in Azure) on port2 with gateway set to value you discovered in previous step. **Important:** you MUST use distance value of **5** for the health probe route 
 
-Add two BGP neighbors:
+## Finish validate configuration
 
-| Remote IP | Remote AS | Description |
-|-----------|-----------|-------------|
-| Hub BGP Peer 1 IP | 65515 | vWAN-hub-peer1 |
-| Hub BGP Peer 2 IP | 65515 | vWAN-hub-peer2 |
+1. Push your template to both hub FortiGates (not to the branch FortiGate) by assigning them to template and running installation wizard.
+2. Login to FortiGate CLI to verify the BGP session is now established (see the "Diagnose the problem" section at the beginning of this task for details)
 
-Enable **eBGP Multipath** to use both paths simultaneously.
+At this point you should see **two** entries for your spoke network (<EnvVarInline field="spoke_cidr" />) in the routing table:
 
-### 3. Configure BGP on NVA 2
-
-Repeat the identical configuration on NVA 2 at <EnvVarInline field="url_fgt_nva2" />
-
-### 4. Configure static routes
-
-Before BGP can establish sessions, the NVAs need static routes to reach the hub BGP peer addresses. In the FortiGate CLI:
-
-```
-config router static
-    edit 1
-        set dst <hub-bgp-peer-1>/32
-        set gateway <nva-default-gateway>
-        set device port2
-    next
-    edit 2
-        set dst <hub-bgp-peer-2>/32
-        set gateway <nva-default-gateway>
-        set device port2
-    next
-end
-```
-
-### 5. Verify BGP sessions
-
-From the FortiGate CLI:
-
-```
-get router info bgp summary
-```
-
-Both neighbors should show state **Established** with a non-zero uptime.
-
-You can also verify from the **Azure Portal → Virtual Hub → BGP Peers** — both NVAs should show **Connected**.
-
-> **This challenge is scored.** The prober checks Azure's reported BGP connection state for both NVAs. Both sessions must be **Connected** to score the challenge — if only one is connected you will receive a warning instead.
+![](final-routing.png)

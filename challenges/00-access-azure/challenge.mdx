@@ -28,7 +28,7 @@ Once logged in go to **Resource Groups** and make sure you can see your resource
 ## FortiManager
 
 In a new browser tab open the shared FortiManager UI 
-<EnvVar label="FortiManager UI" field="fmg_ip" />
+<EnvVar label="FortiManager UI" field="fmg_ip" prefix="https://" link />
 
 Accept the certificate warning and log in using your username and password visible in My Environment.
 
@@ -40,7 +40,7 @@ Accept the certificate warning and log in using your username and password visib
 
 That's the FortioGate at the edge of your regional on-site branch office. You can rach it via FortiManager or directly here:
 
-<EnvVar field="branch_fgt_pip" label="Branch FortiGate PIP" />
+<EnvVar field="branch_fgt_pip" label="Branch FortiGate PIP" prefix="https://" link />
 
 Open https://<EnvVarInline field="branch_fgt_pip" /> in your browser. Accept the self-signed certificate warning. Log in with the same username and password as for FortiManager.
 
