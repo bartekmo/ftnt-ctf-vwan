@@ -5,6 +5,7 @@
  * - Consistent dark-theme prose styling
  */
 import { MDXProvider as BaseMDXProvider } from '@mdx-js/react'
+import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { EnvVar, EnvVarInline } from './EnvVar'
 import { NvaCard } from './NvaCard'
@@ -119,6 +120,39 @@ const TD = ({ children }: { children?: ReactNode }) => (
   }}>{children}</td>
 )
 
+const Img = ({ src, alt }: { src?: string; alt?: string }) => {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <img
+        src={src} alt={alt}
+        onClick={() => setOpen(true)}
+        style={{
+          maxWidth: '100%', height: 'auto', display: 'block',
+          margin: '0.75rem 0', borderRadius: 'var(--radius-md)',
+          cursor: 'zoom-in', border: '1px solid var(--color-border)',
+        }}
+      />
+      {open && (
+        <div
+          onClick={() => setOpen(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'rgba(0,0,0,0.85)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'zoom-out',
+          }}
+        >
+          <img
+            src={src} alt={alt}
+            style={{ maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain' }}
+          />
+        </div>
+      )}
+    </>
+  )
+}
+
 const A = ({ href, children }: { href?: string; children: ReactNode }) => (
   <a href={href} target="_blank" rel="noreferrer" style={{ color: 'var(--color-teal)' }}>
     {children}
@@ -136,7 +170,7 @@ const components: any = {
   code: Code, pre: Pre,
   blockquote: Blockquote,
   table: Table, th: TH, td: TD,
-  a: A, hr: HR,
+  a: A, hr: HR, img: Img,
   // Available as JSX components inside any .mdx file
   EnvVar,
   EnvVarInline,
