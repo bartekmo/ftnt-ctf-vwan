@@ -38,18 +38,19 @@ async def check_all(teams: list[TeamContext]) -> TeamResults:
         subscription_id = teams[0].subscription_id if teams else ""
         net = NetworkManagementClient(cred, subscription_id)
 
-        # Discover the hub resource group from the NVA list — hubs live in a
-        # shared RG (e.g. "vwanlab-common"), not the per-team student RG.
-        # We extract it from the first matching NVA's resource ID.
+        # Discover the hub resource group from the virtualHub resource ID.
+        # Format: /subscriptions/{sub}/resourceGroups/{rg}/providers/Microsoft.Network/virtualHubs/{name}
+        # This is the RG that actually contains the hub resource — not the NVA managed RG.
         all_nvas = list(net.network_virtual_appliances.list())
         hub_rg: dict[str, str] = {}   # hub_name -> resource_group
         for nva in all_nvas:
-            if not nva.virtual_hub or not nva.id:
+            if not nva.virtual_hub:
                 continue
-            hub_name = nva.virtual_hub.id.split("/")[-1]
+            parts = nva.virtual_hub.id.split("/")
+            hub_name = parts[-1]
             if hub_name not in hub_rg:
-                # NVA resource ID: /subscriptions/{sub}/resourceGroups/{rg}/providers/...
-                rg = nva.id.split("/")[4]
+                # virtualHub ID: /subscriptions/{sub}/resourceGroups/{rg}/providers/.../virtualHubs/{name}
+                rg = parts[4]
                 hub_rg[hub_name] = rg
 
         # Fetch BGP connections per hub — one call per unique hub
