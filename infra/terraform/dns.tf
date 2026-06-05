@@ -1,24 +1,22 @@
 # ── Custom domain: vwanlab.40net.cloud ───────────────────────────────────────
 #
-# DNS is hosted in GCP Cloud DNS. Authentication is handled by Terraform Cloud.
+# DNS is hosted in GCP Cloud DNS. Authentication handled by Terraform Cloud.
 #
-# The zone "vwanlab" manages "vwanlab.40net.cloud". We use the zone apex
-# (dns_name = "vwanlab.40net.cloud.") for the frontend — CNAME is not allowed
-# at zone apex per DNS spec, so we use an A record pointing to the ACA
-# environment's static outbound IP.
-#
-# ACA managed certificate is provisioned via AzAPI (azurerm provider does not
-# support managed certs without a certificate blob).
+# Deployment order required by ACA API:
+#   1. DNS A record + TXT verification record
+#   2. Bind hostname to container app (no cert yet — bindingType=Disabled)
+#   3. Create managed certificate (requires hostname already bound)
+#   4. Update binding to reference the certificate (bindingType=SniEnabled)
 
 # ── GCP DNS ───────────────────────────────────────────────────────────────────
 
 data "google_dns_managed_zone" "vwanlab" {
-  name = "vwanlab"   # zone name in GCP Cloud DNS
+  name = "vwanlab"
 }
 
-# A record at zone apex: vwanlab.40net.cloud → ACA environment static IP
+# A record at zone apex — CNAME not allowed at apex per DNS spec
 resource "google_dns_record_set" "frontend_a" {
-  name         = data.google_dns_managed_zone.vwanlab.dns_name   # "vwanlab.40net.cloud."
+  name         = data.google_dns_managed_zone.vwanlab.dns_name
   type         = "A"
   ttl          = 300
   managed_zone = data.google_dns_managed_zone.vwanlab.name
@@ -27,16 +25,39 @@ resource "google_dns_record_set" "frontend_a" {
 
 # TXT record for ACA domain ownership verification
 resource "google_dns_record_set" "frontend_verify" {
-  name         = "asuid.${data.google_dns_managed_zone.vwanlab.dns_name}"   # "asuid.vwanlab.40net.cloud."
+  name         = "asuid.${data.google_dns_managed_zone.vwanlab.dns_name}"
   type         = "TXT"
   ttl          = 300
   managed_zone = data.google_dns_managed_zone.vwanlab.name
   rrdatas      = ["\"${azurerm_container_app.frontend.custom_domain_verification_id}\""]
 }
 
-# ── ACA managed certificate ───────────────────────────────────────────────────
-# Uses AzAPI because azurerm_container_app_environment_certificate requires a
-# certificate blob; managed (ACME) certs are only supported via the ARM API.
+# ── Step 1: bind hostname without certificate ─────────────────────────────────
+
+resource "azapi_update_resource" "frontend_hostname_binding" {
+  type        = "Microsoft.App/containerApps@2023-05-01"
+  resource_id = azurerm_container_app.frontend.id
+
+  body = {
+    properties = {
+      configuration = {
+        ingress = {
+          customDomains = [{
+            name        = "vwanlab.40net.cloud"
+            bindingType = "Disabled"
+          }]
+        }
+      }
+    }
+  }
+
+  depends_on = [
+    google_dns_record_set.frontend_a,
+    google_dns_record_set.frontend_verify,
+  ]
+}
+
+# ── Step 2: create managed certificate (hostname must already be bound) ───────
 
 resource "azapi_resource" "frontend_managed_cert" {
   type      = "Microsoft.App/managedEnvironments/managedCertificates@2023-05-01"
@@ -47,17 +68,14 @@ resource "azapi_resource" "frontend_managed_cert" {
   body = {
     properties = {
       subjectName             = "vwanlab.40net.cloud"
-      domainControlValidation = "HTTP"   # ACA uses HTTP-01 challenge via the static IP
+      domainControlValidation = "HTTP"
     }
   }
 
-  depends_on = [
-    google_dns_record_set.frontend_a,
-    google_dns_record_set.frontend_verify,
-  ]
+  depends_on = [azapi_update_resource.frontend_hostname_binding]
 }
 
-# ── Custom domain binding on the frontend container app ───────────────────────
+# ── Step 3: update binding to enable TLS with the managed certificate ─────────
 
 resource "azapi_update_resource" "frontend_custom_domain" {
   type        = "Microsoft.App/containerApps@2023-05-01"
