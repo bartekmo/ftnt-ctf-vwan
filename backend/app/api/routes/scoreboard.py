@@ -139,7 +139,7 @@ async def reset_event(
     return {"reset": True}
 
 
-@router.get("/my/solves")
+@router.get("/solves/my", response_model=list[str])
 async def my_solves(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),

@@ -6,7 +6,7 @@ let _cache: Set<string> | null = null
 let _promise: Promise<Set<string>> | null = null
 
 async function fetchSolvedSlugs(): Promise<Set<string>> {
-  const r = await api.get<string[]>('/my/solves')
+  const r = await api.get<string[]>('/solves/my')
   return new Set(r.data)
 }
 
