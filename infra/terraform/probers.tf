@@ -77,7 +77,7 @@ resource "azurerm_container_app_job" "probers" {
       }
       env {
         name  = "CTF_API_URL"
-        value = "https://ctf-api.internal.${azurerm_container_app_environment.ctf.default_domain}"
+        value = "https://${azurerm_container_app.api.name}.internal.${azurerm_container_app_environment.ctf.default_domain}"
       }
       env {
         name        = "PROBER_SECRET"
