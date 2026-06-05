@@ -53,14 +53,36 @@ refs:
 ### EnvVar (block display — labelled row with copy button)
 
 ```mdx
+# Field from environment
 <EnvVar field="branch_fgt_pip" label="Branch FortiGate IP" />
+
+# Static literal string
+<EnvVar value="admin" label="Username" />
+
+# Field with prefix or suffix (mixed)
+<EnvVar field="fgt_nva1_pip" prefix="https://" label="NVA 1 URL" />
+<EnvVar field="env_id" prefix="vwanlab" suffix="@fortinetcloud.onmicrosoft.com" label="Username" />
+
+# Clickable link (opens new tab, shows external link icon)
+<EnvVar field="url_fmg" label="FortiManager" link />
+<EnvVar value="https://portal.azure.com" label="Azure Portal" link />
+<EnvVar field="fmg_ip" prefix="https://" label="FortiManager" link />
+
+# Secret (hidden by default, reveal button)
 <EnvVar field="azure_password" label="Password" secret />
 ```
 
 ### EnvVarInline (inline in prose)
 
 ```mdx
-Connect to `https://<EnvVarInline field="branch_fgt_pip" />` in your browser.
+# Field from environment
+Connect to <EnvVarInline field="branch_fgt_pip" /> in your browser.
+
+# With prefix/suffix
+Open <EnvVarInline field="hub_name" prefix="hub" /> in Azure.
+
+# Static literal
+Login as <EnvVarInline value="admin" />.
 ```
 
 Available field names come from the `TeamEnvironmentOut` schema:

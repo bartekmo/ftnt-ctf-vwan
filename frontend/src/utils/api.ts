@@ -55,6 +55,7 @@ export interface TeamEnvironment {
   team_id: number
   team_name: string
   env_id: string
+  hub_name: string
   azure_username: string
   azure_password: string
   azure_tap: string | null

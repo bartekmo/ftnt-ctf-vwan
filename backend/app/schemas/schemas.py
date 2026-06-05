@@ -111,6 +111,7 @@ class TeamEnvironmentOut(BaseModel):
     team_id: int
     team_name: str
     env_id: str
+    hub_name: str               # e.g. "hub02" — derived from env_id
 
     # Azure credentials
     azure_username: str
