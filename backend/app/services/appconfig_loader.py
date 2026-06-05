@@ -1,23 +1,17 @@
 """
 appconfig_loader.py — load config from Azure App Configuration at startup.
 
-Called once during lifespan startup before settings objects are used.
-Reads all known keys from the App Configuration store and injects them
-into os.environ so that pydantic-settings picks them up on next access.
-
-Values already set in the environment (e.g. from ACA secrets like
-PROBER_SECRET, DATABASE_URL) are NOT overwritten — env vars take
-precedence over App Configuration. This lets secrets stay in ACA
-while plain config comes from App Configuration.
-
-Set APP_CONFIG_ENDPOINT to enable. Leave unset for local dev.
+Runs the sync azure-appconfiguration client in a thread executor to avoid
+blocking the async event loop. A 15-second timeout guards against hung
+managed identity token requests.
 """
+import asyncio
 import logging
 import os
+from concurrent.futures import ThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
 
-# Keys managed in App Configuration (non-secret, set by terraform-vwan)
 APPCONFIG_KEYS = [
     "VWAN_NAME",
     "RG_PREFIX",
@@ -30,43 +24,21 @@ APPCONFIG_KEYS = [
     "AZURE_SUBSCRIPTION_ID",
     "GRAPH_CLIENT_ID",
     "AZURE_TENANT_ID",
-    # FGT_FIRMWARE_VERSION, FMG_USER, FMG_PASSWORD are prober-only — not needed by API
 ]
 
+_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="appconfig")
 
-async def load_from_app_config() -> dict[str, str]:
-    """
-    Fetch all APPCONFIG_KEYS from the App Configuration store and set them
-    in os.environ (skipping keys already present in the environment).
 
-    Returns a dict of {key: "loaded"|"skipped"|"missing"} for startup logging.
-    """
-    endpoint = os.environ.get("APP_CONFIG_ENDPOINT")
-    if not endpoint:
-        logger.info("APP_CONFIG_ENDPOINT not set — skipping App Configuration load")
-        return {}
+def _load_sync(endpoint: str, client_id: str | None) -> dict[str, str]:
+    """Blocking load — called in a thread so it doesn't block the event loop."""
+    from azure.appconfiguration import AzureAppConfigurationClient
+    from azure.identity import ManagedIdentityCredential, DefaultAzureCredential
 
-    try:
-        from azure.appconfiguration import AzureAppConfigurationClient
-        from azure.identity import ManagedIdentityCredential, DefaultAzureCredential
-
-        # Use managed identity in ACA; fall back to DefaultAzureCredential for
-        # local dev when APP_CONFIG_ENDPOINT is set (e.g. for testing)
-        client_id = os.environ.get("AZURE_CLIENT_ID")
-        if client_id:
-            credential = ManagedIdentityCredential(client_id=client_id)
-        else:
-            credential = DefaultAzureCredential()
-
-        client = AzureAppConfigurationClient(endpoint, credential)
-    except Exception as e:
-        logger.error("Failed to initialise App Configuration client: %s", e)
-        return {}
+    credential = ManagedIdentityCredential(client_id=client_id) if client_id else DefaultAzureCredential()
+    client = AzureAppConfigurationClient(endpoint, credential)
 
     results: dict[str, str] = {}
-
     for key in APPCONFIG_KEYS:
-        # Never overwrite values already set in the environment
         if os.environ.get(key):
             results[key] = "skipped"
             continue
@@ -79,10 +51,31 @@ async def load_from_app_config() -> dict[str, str]:
                 results[key] = "missing"
         except Exception:
             results[key] = "missing"
+    return results
+
+
+async def load_from_app_config() -> dict[str, str]:
+    endpoint = os.environ.get("APP_CONFIG_ENDPOINT")
+    if not endpoint:
+        logger.info("APP_CONFIG_ENDPOINT not set — skipping App Configuration load")
+        return {}
+
+    client_id = os.environ.get("AZURE_CLIENT_ID")
+    loop = asyncio.get_event_loop()
+    try:
+        results = await asyncio.wait_for(
+            loop.run_in_executor(_executor, _load_sync, endpoint, client_id),
+            timeout=15.0,
+        )
+    except asyncio.TimeoutError:
+        logger.error("App Configuration load timed out after 15s — continuing without it")
+        return {}
+    except Exception as e:
+        logger.error("App Configuration load failed: %s", e)
+        return {}
 
     loaded  = [k for k, v in results.items() if v == "loaded"]
     missing = [k for k, v in results.items() if v == "missing"]
-
     if loaded:
         logger.info("App Configuration: loaded %s", loaded)
     if missing:
