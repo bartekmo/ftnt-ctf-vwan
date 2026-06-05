@@ -14,6 +14,14 @@ terraform {
       source  = "hashicorp/random"
       version = "~> 3.6"
     }
+    google = {
+      source  = "hashicorp/google"
+      version = "~> 5.0"
+    }
+    azapi = {
+      source  = "azure/azapi"
+      version = "~> 1.0"
+    }
   }
 
   cloud {
