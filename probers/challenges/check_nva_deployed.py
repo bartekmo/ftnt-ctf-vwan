@@ -15,8 +15,6 @@ import logging
 import os
 from concurrent.futures import ThreadPoolExecutor
 
-from azure.identity import ManagedIdentityCredential
-from azure.mgmt.network import NetworkManagementClient
 
 from probers.base import TeamContext, ProbeResult, TeamResults
 
@@ -33,27 +31,13 @@ async def check_all(teams: list[TeamContext]) -> TeamResults:
     """
     import asyncio
 
-    def _fetch_all_nvas():
-        client_id = os.environ.get("AZURE_CLIENT_ID")
-        cred = ManagedIdentityCredential(client_id=client_id) if client_id else ManagedIdentityCredential()
-
-        # subscription_id is the same for all teams — take it from the first one
-        subscription_id = teams[0].subscription_id if teams else ""
-        net = NetworkManagementClient(cred, subscription_id)
-
-        # Single subscription-wide call — equivalent to the ARM REST endpoint:
-        # GET /providers/Microsoft.Network/networkVirtualAppliances?api-version=2022-07-01
-        return list(net.network_virtual_appliances.list())
-
-    loop = asyncio.get_event_loop()
+    subscription_id = teams[0].subscription_id if teams else ""
     try:
-        all_nvas = await loop.run_in_executor(_executor, _fetch_all_nvas)
+        from probers.arm_cache import get_all_nvas
+        all_nvas = await get_all_nvas(subscription_id)
     except Exception as e:
         logger.error("check_nva_deployed: ARM call failed: %s", e)
-        # Return not-solved for all teams rather than crashing
         return {t.team_id: ProbeResult(solved=False, detail=f"ARM error: {e}") for t in teams}
-
-    logger.info("check_nva_deployed: fetched %d NVAs from ARM", len(all_nvas))
 
     # Build a map: hub_name -> [nva, ...]
     # Hub name is extracted from the virtualHub resource id:

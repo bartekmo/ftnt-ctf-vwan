@@ -30,7 +30,7 @@ resource "azurerm_container_app_job" "probers" {
     identity = data.azurerm_user_assigned_identity.app_id.id
   }
 
-  replica_timeout_in_seconds = 120
+  replica_timeout_in_seconds = 300
   replica_retry_limit        = 0
 
   schedule_trigger_config {

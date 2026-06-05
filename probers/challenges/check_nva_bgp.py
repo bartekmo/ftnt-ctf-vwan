@@ -36,7 +36,7 @@ async def check_all(teams: list[TeamContext]) -> TeamResults:
         client_id = os.environ.get("AZURE_CLIENT_ID")
         cred = ManagedIdentityCredential(client_id=client_id) if client_id else ManagedIdentityCredential()
         subscription_id = teams[0].subscription_id if teams else ""
-        net = NetworkManagementClient(cred, subscription_id)
+        net = NetworkManagementClient(cred, subscription_id, polling_interval=5)
 
         # Discover the hub resource group from the virtualHub resource ID.
         # Format: /subscriptions/{sub}/resourceGroups/{rg}/providers/Microsoft.Network/virtualHubs/{name}

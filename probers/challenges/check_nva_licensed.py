@@ -101,7 +101,7 @@ async def check_all(teams: list[TeamContext]) -> TeamResults:
         client_id = os.environ.get("AZURE_CLIENT_ID")
         cred = ManagedIdentityCredential(client_id=client_id) if client_id else ManagedIdentityCredential()
         subscription_id = teams[0].subscription_id if teams else ""
-        net = NetworkManagementClient(cred, subscription_id)
+        net = NetworkManagementClient(cred, subscription_id, polling_interval=5)
 
         all_nvas = list(net.network_virtual_appliances.list())
         logger.info("check_nva_licensed: fetched %d NVAs from ARM", len(all_nvas))
