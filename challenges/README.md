@@ -21,12 +21,11 @@ challenges/
 | id       | string | Unique slug, must match directory name |
 | title    | string | Shown in sidebar and challenge header |
 | category | enum   | networking, vpn, routing, security, monitoring, misc |
-| points   | int    | Base score. 0 = informational |
-| scored   | bool   | false = no prober, no points, no submit button |
-| prober   | string | Prober function name (omit when scored: false) |
+| scored   | bool   | false = informational only, no points, no submit button |
 | visible  | bool   | false = hidden from attendees |
 
-Order is determined by the position in the  list — no separate field needed.
+`points` and `prober` belong in MDX frontmatter only, not in `index.yaml`.
+Order is determined by the position in the list — no separate field needed.
 
 ## MDX frontmatter fields
 

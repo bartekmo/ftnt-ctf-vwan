@@ -48,11 +48,46 @@ CHALLENGES_INDEX = os.environ.get(
 
 # ── Challenge registry ────────────────────────────────────────────────────
 
+def _parse_mdx_frontmatter(mdx_path: str) -> dict:
+    """Extract YAML frontmatter from an MDX file (content between first two --- lines)."""
+    try:
+        with open(mdx_path) as f:
+            lines = f.readlines()
+        if not lines or lines[0].strip() != "---":
+            return {}
+        end = next((i for i, l in enumerate(lines[1:], 1) if l.strip() == "---"), None)
+        if end is None:
+            return {}
+        return yaml.safe_load("".join(lines[1:end])) or {}
+    except Exception:
+        return {}
+
+
 def load_scored_challenges() -> list[dict]:
-    """Load all scored challenges from index.yaml."""
+    """Load all scored challenges, preserving index.yaml order.
+    prober and points come from each challenge's MDX frontmatter.
+    """
     with open(CHALLENGES_INDEX) as f:
         data = yaml.safe_load(f)
-    return [c for c in data.get("challenges", []) if c.get("scored") and c.get("prober")]
+
+    challenges_dir = os.path.dirname(CHALLENGES_INDEX)
+    result = []
+    for c in data.get("challenges", []):
+        slug = c.get("id", "")
+        mdx_path = os.path.join(challenges_dir, slug, "challenge.mdx")
+        fm = _parse_mdx_frontmatter(mdx_path)
+
+        # Merge: index.yaml provides id, title, visible, scored
+        # MDX frontmatter provides prober and points
+        merged = {**c}
+        if "prober" in fm:
+            merged["prober"] = fm["prober"]
+        if "points" in fm:
+            merged["points"] = fm["points"]
+
+        if merged.get("scored") and merged.get("prober"):
+            result.append(merged)
+    return result
 
 
 
