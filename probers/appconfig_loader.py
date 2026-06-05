@@ -26,11 +26,17 @@ APPCONFIG_KEYS = [
 ]
 
 
+_loaded = False  # guard: only load once per process
+
+
 def load_from_app_config() -> None:
     """
     Synchronous loader — probers run in a thread pool so we use the
     sync azure-appconfiguration client. Called once before asyncio.run(main()).
     """
+    global _loaded
+    if _loaded:
+        return
     endpoint = os.environ.get("APP_CONFIG_ENDPOINT")
     if not endpoint:
         logger.info("APP_CONFIG_ENDPOINT not set — skipping App Configuration load")
@@ -67,3 +73,4 @@ def load_from_app_config() -> None:
         logger.info("App Configuration: loaded %s", loaded)
     if missing:
         logger.warning("App Configuration: not found %s", missing)
+    _loaded = True

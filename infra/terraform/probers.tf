@@ -59,10 +59,9 @@ resource "azurerm_container_app_job" "probers" {
         name  = "AZURE_CLIENT_ID"
         value = data.azurerm_user_assigned_identity.app_id.client_id
       }
-      env {
-        name  = "APP_CONFIG_ENDPOINT"
-        value = var.app_config_endpoint
-      }
+      # APP_CONFIG_ENDPOINT intentionally omitted from probers:
+      # all required config is injected as direct env vars below,
+      # avoiding 12 App Config requests/minute that exhaust the free tier.
       env {
         name  = "FGT_FIRMWARE_VERSION"
         value = var.fgt_firmware_version
@@ -90,6 +89,10 @@ resource "azurerm_container_app_job" "probers" {
       env {
         name  = "AZURE_SUBSCRIPTION_ID"
         value = data.azurerm_client_config.current.subscription_id
+      }
+      env {
+        name  = "VWAN_NAME"
+        value = var.vwan_name
       }
       env {
         name  = "RG_PREFIX"
