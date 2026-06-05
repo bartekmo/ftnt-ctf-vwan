@@ -20,22 +20,25 @@ Before the FortiGate NVAs can pass traffic, they must be licensed using. In this
 
 ## NVA management access
 
-You can access your FortiGates using SSH or Web UI for this task. You configured your credentials during deployment in the previous step.
-
 <NvaCard />
 
-## Licensing using Web UI
+You can access your FortiGates using SSH or Web UI for this task. You configured your credentials during deployment in the previous step.
+
+## Licensing using Web UI (or use SSH instructions below)
 
 Connect to each FortiGate web ui using the links above. After a short while you will be asked for license. Select **FortiFlex token** and paste token from the list above (note: each token can be used only once).
 
+Repeat for the second appliance.
+
 ![](lic-web.png)
 
-## Licensing using SSH 
+## Licensing using SSH (or use Web instructions above)
 
 After connecting run the command `execute vm-license` followed by the FortiFlex token. The appliance will reboot to activate the license.
 
-![](lic-ssh.png)
+Repeat for the second appliance.
 
+![](lic-ssh.png)
 
 ## Verification
 

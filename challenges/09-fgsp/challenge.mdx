@@ -1,0 +1,46 @@
+---
+title: "Enabling FGSP"
+category: FortiGate
+points: 80
+scored: true
+prober: fgt_fgsp
+hints:
+  - text: "To configure FGSP you need to first find the IP addresses of both FortiGates. The quickest way is to use FortiManager and check their variable mapping for $vwan_port2_ip"
+    cost: 20
+  - text: "FortiManager can use metadata variables in jinja templates. Look for the 'Type' drop-down list at the top."
+    cost: 15
+refs:
+  - label: "Fortinet docs: Configuring FGSP on FortiGate NVAs (CLI)"
+    url: "https://docs.fortinet.com/document/fortigate-public-cloud/7.4.0/azure-vwan-sd-wan-ngfw-deployment-guide/304289/configuring-fgsp-on-fortigate-nvas-cli"
+  - label: FortiManager docs: CLI templates"
+    url: "https://docs.fortinet.com/document/fortimanager/7.6.6/administration-guide/759109/cli-templates"
+  - label: "FortiManager docs: Create metadata variables used in templates"
+    url: "https://docs.fortinet.com/document/fortimanager/7.2.0/new-features/431215/create-metadata-variables-used-in-templates"
+
+---
+
+## Enabling FGSP
+
+Initially both FortiGates are configured as stand-alone. In some situations where traffic flows might be asymmetrical you need to add FGSP configuration to your cluster. The example CLI code:
+
+```
+config system standalone-cluster 
+  set standalone-group-id 1 
+  set group-member-id 1 
+  config cluster-peer 
+    edit 0 
+    set peerip x.x.x.peer 
+    next 
+  end 
+end 
+
+config system ha 
+  set session-pickup enable 
+  set session-pickup-nat enable 
+  set session-pickup-connectionless enable 
+  set override disable 
+end
+```
+
+You can implement the above settings manually on each individual FortiGate or create a provisioning template in FortiManager.
+

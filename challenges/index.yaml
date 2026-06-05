@@ -41,9 +41,9 @@ challenges:
   - id: 08-intent-routing
     title: "Azure intent routing configuration"
     category: Azure vWAN
-    points: 100
+    points: 50
     scored: true
-    prober: check_fmg_connection
+    prober: arm_intent_routing
     visible: true
 
   - id: 06-spoke-peering
@@ -59,29 +59,13 @@ challenges:
     category: routing
     points: 150
     scored: true
-    prober: check_nva_bgp
+    prober: arm_bgp_up
     visible: true
 
-  - id: 04-branch-vpn
-    title: "Establish the Branch VPN tunnel"
-    category: vpn
-    points: 150
+  - id: 09-fgsp
+    title: "Enable FGSP between FortiGates"
+    category: FortiGate
+    points: 50
     scored: true
-    prober: check_branch_vpn
-    visible: true
-
-  - id: 05-branch-bgp
-    title: "Configure Branch BGP"
-    category: routing
-    points: 150
-    scored: true
-    prober: check_branch_bgp
-    visible: true
-
-  - id: 07-spoke-routing
-    title: "Route Spoke traffic through the hub"
-    category: routing
-    points: 200
-    scored: true
-    prober: check_spoke_routing
+    prober: fgt_fgsp
     visible: true
