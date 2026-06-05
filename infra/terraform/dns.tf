@@ -4,9 +4,9 @@
 #
 # Deployment order required by ACA API:
 #   1. DNS A record + TXT verification record
-#   2. Bind hostname to container app (no cert yet — bindingType=Disabled)
+#   2. Bind hostname to container app (bindingType=Disabled, no cert)
 #   3. Create managed certificate (requires hostname already bound)
-#   4. Update binding to reference the certificate (bindingType=SniEnabled)
+#   4. Update binding to SniEnabled with certificate
 
 # ── GCP DNS ───────────────────────────────────────────────────────────────────
 
@@ -33,10 +33,14 @@ resource "google_dns_record_set" "frontend_verify" {
 }
 
 # ── Step 1: bind hostname without certificate ─────────────────────────────────
+# Use resource_action (POST) rather than update_resource (PUT) to avoid
+# Terraform merging stale certificateId from previous state into the body.
 
-resource "azapi_update_resource" "frontend_hostname_binding" {
+resource "azapi_resource_action" "frontend_hostname_binding" {
   type        = "Microsoft.App/containerApps@2023-05-01"
   resource_id = azurerm_container_app.frontend.id
+  action      = ""
+  method      = "PATCH"
 
   body = {
     properties = {
@@ -57,7 +61,7 @@ resource "azapi_update_resource" "frontend_hostname_binding" {
   ]
 }
 
-# ── Step 2: create managed certificate (hostname must already be bound) ───────
+# ── Step 2: create managed certificate ───────────────────────────────────────
 
 resource "azapi_resource" "frontend_managed_cert" {
   type      = "Microsoft.App/managedEnvironments/managedCertificates@2023-05-01"
@@ -72,10 +76,10 @@ resource "azapi_resource" "frontend_managed_cert" {
     }
   }
 
-  depends_on = [azapi_update_resource.frontend_hostname_binding]
+  depends_on = [azapi_resource_action.frontend_hostname_binding]
 }
 
-# ── Step 3: update binding to enable TLS with the managed certificate ─────────
+# ── Step 3: enable TLS with the managed certificate ──────────────────────────
 
 resource "azapi_update_resource" "frontend_custom_domain" {
   type        = "Microsoft.App/containerApps@2023-05-01"
