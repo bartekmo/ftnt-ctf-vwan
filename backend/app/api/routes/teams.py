@@ -115,6 +115,7 @@ async def _build_environment(team: Team, db: AsyncSession) -> TeamEnvironmentOut
         team_id=team.id,
         team_name=team.name,
         env_id=ns,
+        hub_name=f"hub{ns}",
         # Azure credentials
         azure_username=f"vwanlab{ns}@fortinetcloud.onmicrosoft.com",
         azure_password=_s().AZURE_STUDENT_PASSWORD,
