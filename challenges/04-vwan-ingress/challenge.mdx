@@ -1,0 +1,30 @@
+---
+title: "Internet inbound"
+points: 200
+scored: true
+prober: check_inbound
+hints:
+  - text: "If your installation fails at adding 'apply_on' it means you probably didn't pull the SLB list on active FortiGate: `exec azure vwan-slb pull"
+    cost: 25
+
+refs:
+  - label: "Fortinet docs: Configuring internet inbound using FortiManager"
+    url: "https://docs.fortinet.com/document/fortigate-public-cloud/7.4.0/azure-vwan-sd-wan-ngfw-deployment-guide/182878/configuring-internet-inbound-dnat-policies-using-fortimanagerb"
+  - label: "Fortinet docs: Configuring internet inbound without FortiManager"
+    url: "https://docs.fortinet.com/document/fortigate-public-cloud/7.4.0/azure-vwan-sd-wan-ngfw-deployment-guide/970796/configuring-internet-inbound-dnat-policies-without-fortimanager"
+---
+
+## Internet inbound
+
+### Find your SLB
+
+in portal
+in FGT cli
+
+### Choose active instance
+
+### Add permanent rule
+
+### Configure VIP and firewall policy
+
+### Internet intent routing

@@ -65,7 +65,21 @@ challenges:
   - id: 09-fgsp
     title: "Enable FGSP between FortiGates"
     category: FortiGate
-    points: 50
+    points: 80
     scored: true
     prober: fgt_fgsp
+    visible: true
+
+  - id: 10-allow-ew-traffic
+    title: "Allow cross-regional traffic"
+    points: 100
+    scored: true
+    prober: spoke_ew
+    visible: true
+
+  - id: 04-vwan-ingress
+    title: "Configure internet inbound"
+    points: 200
+    scored: true
+    prober: check_inbound
     visible: true
