@@ -1,28 +1,57 @@
 /**
  * EnvVar — block display of an environment variable value.
- * Used in MDX challenge files as: <EnvVar field="branch_fgt_pip" label="Branch FGT IP" />
  *
- * EnvVarInline — inline span for use inside prose.
- * Used as: connect to <EnvVarInline field="branch_fgt_pip" />
+ * Usage variants:
+ *
+ *   Field from environment:
+ *     <EnvVar field="branch_fgt_pip" label="Branch FGT IP" />
+ *
+ *   Static literal string:
+ *     <EnvVar value="admin" label="Username" />
+ *
+ *   Field with prefix/suffix (mixed):
+ *     <EnvVar field="fgt_nva1_pip" prefix="https://" label="NVA 1 URL" />
+ *     <EnvVar field="env_id" prefix="vwanlab" suffix="@fortinetcloud.onmicrosoft.com" label="Username" />
+ *
+ *   Clickable link (opens in new tab):
+ *     <EnvVar field="url_fmg" label="FortiManager" link />
+ *     <EnvVar field="fmg_ip" prefix="https://" label="FortiManager" link />
+ *     <EnvVar value="https://portal.azure.com" label="Azure Portal" link />
+ *
+ *   Secret (hidden by default, reveal button):
+ *     <EnvVar field="azure_password" label="Password" secret />
+ *
+ * EnvVarInline — inline span for use inside prose:
+ *   connect to <EnvVarInline field="branch_fgt_pip" />
+ *   open <EnvVarInline field="hub_name" prefix="https://" suffix=".example.com" />
  */
 import { useState } from 'react'
-import { Copy, CheckCheck, Eye, EyeOff } from 'lucide-react'
+import { Copy, CheckCheck, Eye, EyeOff, ExternalLink } from 'lucide-react'
 import { useEnvData } from '@/hooks/useEnvData'
 import type { TeamEnvironment } from '@/utils/api'
 
 interface EnvVarProps {
-  field: keyof TeamEnvironment
-  label?: string
-  secret?: boolean
+  field?:   keyof TeamEnvironment   // variable from environment
+  value?:   string                  // literal static string (alternative to field)
+  prefix?:  string                  // prepended to the resolved value
+  suffix?:  string                  // appended to the resolved value
+  label?:   string
+  secret?:  boolean
+  link?:    boolean                 // render value as a clickable link
 }
 
-export function EnvVar({ field, label, secret }: EnvVarProps) {
+export function EnvVar({ field, value: staticValue, prefix = '', suffix = '', label, secret, link }: EnvVarProps) {
   const env = useEnvData()
   const [copied, setCopied] = useState(false)
   const [revealed, setRevealed] = useState(false)
 
-  const rawValue = env ? String(env[field] ?? '') : null
-  const pending = !rawValue
+  // Resolve the core value
+  const coreValue = staticValue !== undefined
+    ? staticValue
+    : field && env ? String(env[field] ?? '') : null
+
+  const pending  = coreValue === null
+  const rawValue = pending ? null : `${prefix}${coreValue}${suffix}`
 
   const copy = () => {
     if (!rawValue) return
@@ -36,6 +65,36 @@ export function EnvVar({ field, label, secret }: EnvVarProps) {
     : secret && !revealed
       ? '••••••••'
       : rawValue
+
+  const valueNode = link && rawValue && !secret ? (
+    <a
+      href={rawValue}
+      target="_blank"
+      rel="noreferrer"
+      style={{
+        fontFamily: 'var(--font-mono)',
+        fontSize: '0.875rem',
+        color: 'var(--color-teal)',
+        flex: 1,
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '0.35rem',
+        textDecoration: 'none',
+      }}
+    >
+      {display}
+      <ExternalLink size={11} style={{ flexShrink: 0, opacity: 0.7 }} />
+    </a>
+  ) : (
+    <span style={{
+      fontFamily: 'var(--font-mono)',
+      fontSize: '0.875rem',
+      color: pending ? 'var(--color-text-dim)' : 'var(--color-teal)',
+      flex: 1,
+    }}>
+      {pending ? '…' : display}
+    </span>
+  )
 
   return (
     <div style={{
@@ -63,14 +122,7 @@ export function EnvVar({ field, label, secret }: EnvVarProps) {
           {label}
         </span>
       )}
-      <span style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: '0.875rem',
-        color: pending ? 'var(--color-text-dim)' : 'var(--color-teal)',
-        flex: 1,
-      }}>
-        {pending ? '…' : display}
-      </span>
+      {valueNode}
       {secret && !pending && (
         <button
           onClick={() => setRevealed(v => !v)}
@@ -91,9 +143,19 @@ export function EnvVar({ field, label, secret }: EnvVarProps) {
   )
 }
 
-export function EnvVarInline({ field }: { field: keyof TeamEnvironment }) {
+interface EnvVarInlineProps {
+  field?:   keyof TeamEnvironment
+  value?:   string
+  prefix?:  string
+  suffix?:  string
+}
+
+export function EnvVarInline({ field, value: staticValue, prefix = '', suffix = '' }: EnvVarInlineProps) {
   const env = useEnvData()
-  const value = env ? String(env[field] ?? '') : '…'
+  const coreValue = staticValue !== undefined
+    ? staticValue
+    : field && env ? String(env[field] ?? '') : '…'
+  const display = `${prefix}${coreValue}${suffix}`
   return (
     <code style={{
       fontFamily: 'var(--font-mono)',
@@ -104,7 +166,7 @@ export function EnvVarInline({ field }: { field: keyof TeamEnvironment }) {
       borderRadius: '3px',
       padding: '0.1em 0.4em',
     }}>
-      {value}
+      {display}
     </code>
   )
 }
