@@ -19,13 +19,15 @@ export function useTeamSolves(): Set<string> {
   const [solved, setSolved] = useState<Set<string>>(_cache ?? new Set())
 
   useEffect(() => {
-    if (!user?.team_id) return
+    if (!user) return
     if (_cache) { setSolved(_cache); return }
     if (!_promise) {
-      _promise = fetchSolvedSlugs().then(s => { _cache = s; return s })
+      _promise = fetchSolvedSlugs()
+        .then(s => { _cache = s; return s })
+        .catch(() => new Set<string>())
     }
     _promise.then(s => setSolved(s))
-  }, [user?.team_id])
+  }, [user?.id])
 
   return solved
 }
