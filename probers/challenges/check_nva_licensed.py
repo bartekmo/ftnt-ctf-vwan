@@ -24,9 +24,7 @@ from probers.base import TeamContext, ProbeResult, TeamResults
 logger = logging.getLogger(__name__)
 _executor = ThreadPoolExecutor(max_workers=2)
 
-FMG_IP       = os.environ.get("FMG_IP", "")
-FMG_USER     = os.environ.get("FMG_USER", "admin")
-FMG_PASSWORD = os.environ.get("FMG_PASSWORD", "")
+# FMG_IP, FMG_USER, FMG_PASSWORD read inside _run() after App Config is loaded
 
 
 # ---------------------------------------------------------------------------
@@ -118,6 +116,9 @@ async def check_all(teams: list[TeamContext]) -> TeamResults:
                 hub_nva_names.setdefault(hub_name, []).append(nva.name)
 
         # ── Step 2: login to FMG and fetch devices ───────────────────────
+        FMG_IP       = os.environ.get("FMG_IP", "")
+        FMG_USER     = os.environ.get("FMG_USER", "admin")
+        FMG_PASSWORD = os.environ.get("FMG_PASSWORD", "")
         if not FMG_IP:
             logger.error("check_nva_licensed: FMG_IP not set")
             return {t.team_id: ProbeResult(solved=False, detail="FMG_IP not configured") for t in teams}

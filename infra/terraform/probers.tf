@@ -60,6 +60,10 @@ resource "azurerm_container_app_job" "probers" {
         value = data.azurerm_user_assigned_identity.app_id.client_id
       }
       env {
+        name  = "APP_CONFIG_ENDPOINT"
+        value = var.app_config_endpoint
+      }
+      env {
         name  = "FGT_FIRMWARE_VERSION"
         value = var.fgt_firmware_version
       }

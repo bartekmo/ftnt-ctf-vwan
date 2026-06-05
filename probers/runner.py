@@ -37,11 +37,7 @@ logging.basicConfig(
 logger = logging.getLogger("runner")
 
 # ── Config ────────────────────────────────────────────────────────────────
-
-SUBSCRIPTION_ID = os.environ.get("AZURE_SUBSCRIPTION_ID", "")
-RG_PREFIX       = os.environ.get("RG_PREFIX", "vwanlab-student-")
-RG_SUFFIX       = os.environ.get("RG_SUFFIX", "")
-RG_BRANCHES     = os.environ.get("RG_BRANCHES", "")
+# Read lazily inside functions (after App Configuration has been loaded).
 
 # Path to challenges/index.yaml — mounted into the container or baked at build
 CHALLENGES_INDEX = os.environ.get(
@@ -67,13 +63,18 @@ def build_team_context(team: dict) -> Optional[TeamContext]:
     env_id = team.get("env_id")
     if not env_id:
         return None
+    # Read env vars here (after App Configuration has been loaded at startup)
+    subscription_id = os.environ.get("AZURE_SUBSCRIPTION_ID", "")
+    rg_prefix       = os.environ.get("RG_PREFIX", "vwanlab-student-")
+    rg_suffix       = os.environ.get("RG_SUFFIX", "")
+    rg_branches     = os.environ.get("RG_BRANCHES", "")
     return TeamContext(
         team_id         = team["id"],
         team_name       = team["name"],
         env_id          = env_id,
-        rg_name         = f"{RG_PREFIX}{env_id}{RG_SUFFIX}",
-        rg_branches     = RG_BRANCHES,
-        subscription_id = SUBSCRIPTION_ID,
+        rg_name         = f"{rg_prefix}{env_id}{rg_suffix}",
+        rg_branches     = rg_branches,
+        subscription_id = subscription_id,
         hub_name        = f"hub{env_id}",
     )
 
@@ -241,4 +242,6 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
+    from probers.appconfig_loader import load_from_app_config
+    load_from_app_config()
     asyncio.run(main())
