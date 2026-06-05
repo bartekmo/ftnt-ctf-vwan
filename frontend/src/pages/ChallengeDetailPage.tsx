@@ -5,6 +5,7 @@ import {
   Eye, AlertTriangle, BookOpen, ExternalLink,
 } from 'lucide-react'
 import { getChallengeById, challenges } from '@/utils/challenges'
+import { useTeamSolves } from '@/hooks/useTeamSolves'
 import { ChallengesMDXProvider } from '@/components/challenges/MDXProvider'
 import { challengesApi, type HintUnlock } from '@/utils/api'
 import { useAuthStore } from '@/store/authStore'
@@ -15,6 +16,7 @@ export default function ChallengeDetailPage() {
   const { user } = useAuthStore()
 
   const challenge = id ? getChallengeById(id) : undefined
+  const solved     = useTeamSolves()
   const allVisible = challenges.filter(c => c.visible || user?.role === 'trainer')
   const currentIdx = allVisible.findIndex(c => c.id === id)
   const prev = currentIdx > 0 ? allVisible[currentIdx - 1] : null
@@ -92,7 +94,12 @@ export default function ChallengeDetailPage() {
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', flexShrink: 0, opacity: 0.6 }}>
                 {String(i + 1).padStart(2, '0')}
               </span>
-              {c.title}
+              <span style={{
+                textDecoration: solved.has(c.id) ? 'line-through' : 'none',
+                opacity: solved.has(c.id) && !active ? 0.55 : 1,
+              }}>
+                {c.title}
+              </span>
               {active && <ChevronRight size={11} style={{ marginLeft: 'auto', flexShrink: 0 }} />}
             </Link>
           )

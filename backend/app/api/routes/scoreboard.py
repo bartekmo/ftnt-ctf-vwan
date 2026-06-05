@@ -139,6 +139,22 @@ async def reset_event(
     return {"reset": True}
 
 
+@router.get("/my/solves")
+async def my_solves(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Return challenge slugs solved by the current user's team."""
+    if not current_user.team_id:
+        return []
+    result = await db.execute(
+        select(ChallengeSolve.challenge_slug).where(
+            ChallengeSolve.team_id == current_user.team_id
+        )
+    )
+    return [row[0] for row in result.all()]
+
+
 @router.post("/solves", response_model=SolveOut, status_code=201)
 async def record_solve(
     body: SolveCreate,

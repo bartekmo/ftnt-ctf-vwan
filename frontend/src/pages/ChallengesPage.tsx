@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import { CheckCircle2, Lock, ChevronRight, BookOpen } from 'lucide-react'
 import { challenges } from '@/utils/challenges'
+import { useTeamSolves } from '@/hooks/useTeamSolves'
 import { useAuthStore } from '@/store/authStore'
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -25,6 +26,7 @@ export default function ChallengesPage() {
     }
   }, [user, navigate])
 
+  const solved   = useTeamSolves()
   const visible = challenges.filter(c => c.visible || user?.role === 'trainer')
 
   return (
@@ -70,7 +72,10 @@ export default function ChallengesPage() {
 
               {/* Title + meta */}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1.05rem' }}>
+                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1.05rem',
+                  textDecoration: solved.has(challenge.id) ? 'line-through' : 'none',
+                  opacity: solved.has(challenge.id) ? 0.55 : 1,
+                }}>
                   {challenge.title}
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem', alignItems: 'center', flexWrap: 'wrap' }}>
