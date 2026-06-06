@@ -59,7 +59,7 @@ challenges:
     category: routing
     points: 150
     scored: true
-    prober: arm_bgp_up
+    prober: check_nva_bgp
     visible: true
 
   - id: 09-fgsp
