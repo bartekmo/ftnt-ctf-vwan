@@ -66,10 +66,11 @@ class FMGClient:
 
     def get_devices(self, adom: str) -> list[dict]:
         result = self._rpc("get", [{
-            "url":    f"/dvmdb/adom/{adom}/device",
-            "option": ["count", "object member"],
+            "url": f"/dvmdb/adom/{adom}/device",
         }])
-        data = result.get("result", [{}])[0].get("data", [])
+        res0 = result.get("result", [{}])[0]
+        logger.debug("check_nva_licensed: get_devices(%s) raw result: %s", adom, res0)
+        data = res0.get("data", [])
         return data if isinstance(data, list) else []
 
 
