@@ -1,21 +1,19 @@
 """
 slb_inbound.py — prober for challenge 04-vwan-ingress.
 
-Condition (score): HTTP GET to port 80 of the public IP on the Standard Load
-                   Balancer attached to the team's hub NVAs returns HTTP 200.
+Condition (score): HTTP GET to port 80 of any public IP listed in
+                   nva.internet_ingress_public_ips returns HTTP 200.
 
 Warnings (do not affect scoring):
   1. "No Internet routing policy on hub" — Internet routing intent absent.
-     Copied from arm_intent_internet logic.
-  2. "No inbound SLB found for NVAs" — no load balancer with a public
-     frontend found in the NVA managed resource group.
+  2. "No inbound SLB found for NVAs" — internet_ingress_public_ips is
+     empty on all NVAs in the hub.
 
 Discovery:
-  - NVA managed RG is extracted from the NVA resource ID:
-    /subscriptions/.../resourceGroups/<mrg>/providers/Microsoft.Network/...
-  - SLB is found by listing load_balancers in that managed RG and picking
-    the first one with a public (non-null) frontend IP configuration.
-  - Public IP is resolved via public_ip_addresses.get() if needed.
+  - NVAs from arm_cache; filter by team.hub_name
+  - internet_ingress_public_ips[].id is a Public IP resource URI
+  - Resolve each to an IP via public_ip_addresses.get()
+  - HTTP GET each resolved IP on port 80; score on first 200
 """
 import logging
 import os
@@ -28,7 +26,6 @@ from probers.base import TeamContext, ProbeResult, TeamResults, Warning
 logger = logging.getLogger(__name__)
 _executor = ThreadPoolExecutor(max_workers=4)
 
-NVA_PROVIDER = "Microsoft.Network/networkVirtualAppliances"
 HTTP_TIMEOUT = 10
 
 
@@ -47,18 +44,16 @@ async def check_all(teams: list[TeamContext]) -> TeamResults:
             cred, teams[0].subscription_id if teams else "", transport=transport
         )
 
-        # Reuse cached NVA list for managed RG discovery
         from probers.arm_cache import _nva_cache
         all_nvas = _nva_cache or []
 
-        # Build hub → managed RG map from NVA resource IDs
-        hub_managed_rg: dict[str, str] = {}
+        # Map hub_name -> [nva, ...]
+        hub_nvas: dict[str, list] = {}
         for nva in all_nvas:
-            if not nva.virtual_hub or not nva.id:
+            if not nva.virtual_hub:
                 continue
             hub_name = nva.virtual_hub.id.split("/")[-1]
-            if hub_name not in hub_managed_rg:
-                hub_managed_rg[hub_name] = nva.id.split("/")[4]
+            hub_nvas.setdefault(hub_name, []).append(nva)
 
         results: TeamResults = {}
         for team in teams:
@@ -67,64 +62,46 @@ async def check_all(teams: list[TeamContext]) -> TeamResults:
             # ── Warning 1: Internet routing intent ───────────────────────────
             _check_internet_intent(net, team, warnings)
 
-            # ── Discover SLB public IP ────────────────────────────────────────
-            managed_rg = hub_managed_rg.get(team.hub_name)
-            if not managed_rg:
-                warnings.append(Warning(
-                    key="no_slb",
-                    message="No inbound SLB found for NVAs (hub not in ARM cache)",
-                ))
+            # ── Collect inbound public IPs from NVA internetIngressPublicIps ─
+            nvas = hub_nvas.get(team.hub_name, [])
+            inbound_ips = _collect_inbound_ips(net, team, nvas, warnings)
+
+            if not inbound_ips:
                 results[team.team_id] = ProbeResult(
                     solved=False,
-                    detail="Hub not found in ARM cache",
+                    detail="No inbound SLB public IPs found",
                     warnings=warnings,
                 )
                 continue
 
-            slb_ip = _find_slb_public_ip(net, managed_rg, team)
-            if not slb_ip:
-                warnings.append(Warning(
-                    key="no_slb",
-                    message="No inbound SLB found for NVAs",
-                ))
-                results[team.team_id] = ProbeResult(
-                    solved=False,
-                    detail=f"No SLB with public IP found in {managed_rg}",
-                    warnings=warnings,
-                )
-                continue
+            # ── HTTP check — try each IP, score on first 200 ─────────────────
+            solved = False
+            detail = ""
+            for ip in inbound_ips:
+                logger.info("slb_inbound: team %s — probing http://%s/", team.team_name, ip)
+                try:
+                    resp = httpx.get(
+                        f"http://{ip}/",
+                        timeout=HTTP_TIMEOUT,
+                        follow_redirects=True,
+                    )
+                    status = resp.status_code
+                    logger.info("slb_inbound: team %s — HTTP %s from %s", team.team_name, status, ip)
+                    if status == 200:
+                        solved = True
+                        detail = f"HTTP 200 from {ip}"
+                        break
+                    else:
+                        detail = f"HTTP {status} from {ip}"
+                except Exception as e:
+                    logger.info("slb_inbound: team %s — HTTP error from %s: %s", team.team_name, ip, e)
+                    detail = f"HTTP request to {ip} failed: {e}"
 
-            # ── HTTP check ────────────────────────────────────────────────────
-            logger.info("slb_inbound: team %s — probing http://%s/", team.team_name, slb_ip)
-            try:
-                resp = httpx.get(
-                    f"http://{slb_ip}/",
-                    timeout=HTTP_TIMEOUT,
-                    follow_redirects=True,
-                )
-                status = resp.status_code
-            except Exception as e:
-                logger.info("slb_inbound: team %s — HTTP error: %s", team.team_name, e)
-                results[team.team_id] = ProbeResult(
-                    solved=False,
-                    detail=f"HTTP request failed: {e}",
-                    warnings=warnings,
-                )
-                continue
-
-            logger.info("slb_inbound: team %s — HTTP %s from %s", team.team_name, status, slb_ip)
-            if status == 200:
-                results[team.team_id] = ProbeResult(
-                    solved=True,
-                    detail=f"HTTP 200 from {slb_ip}",
-                    warnings=warnings,
-                )
-            else:
-                results[team.team_id] = ProbeResult(
-                    solved=False,
-                    detail=f"HTTP {status} from {slb_ip} (expected 200)",
-                    warnings=warnings,
-                )
+            results[team.team_id] = ProbeResult(
+                solved=solved,
+                detail=detail,
+                warnings=warnings,
+            )
 
         return results
 
@@ -136,63 +113,54 @@ async def check_all(teams: list[TeamContext]) -> TeamResults:
         return {t.team_id: ProbeResult(solved=False, detail=str(e)) for t in teams}
 
 
+def _collect_inbound_ips(net, team: TeamContext, nvas: list, warnings: list[Warning]) -> list[str]:
+    """Resolve internet_ingress_public_ips from all NVAs in the hub to IP strings."""
+    all_pip_ids: list[str] = []
+    for nva in nvas:
+        entries = nva.internet_ingress_public_ips or []
+        for entry in entries:
+            if entry.id:
+                all_pip_ids.append(entry.id)
+
+    logger.info("slb_inbound: team %s — found %d inbound PIP resource(s): %s",
+                team.team_name, len(all_pip_ids), all_pip_ids)
+
+    if not all_pip_ids:
+        warnings.append(Warning(
+            key="no_slb",
+            message="No inbound SLB found for NVAs (internetIngressPublicIps is empty)",
+        ))
+        return []
+
+    ips: list[str] = []
+    for pip_id in all_pip_ids:
+        parts    = pip_id.split("/")
+        pip_rg   = parts[4]
+        pip_name = parts[-1]
+        try:
+            pip = net.public_ip_addresses.get(pip_rg, pip_name)
+            if pip.ip_address:
+                ips.append(pip.ip_address)
+                logger.info("slb_inbound: team %s — resolved %s -> %s",
+                            team.team_name, pip_name, pip.ip_address)
+        except Exception as e:
+            logger.warning("slb_inbound: team %s — failed to get PIP %s: %s",
+                           team.team_name, pip_name, e)
+    return ips
+
+
 def _check_internet_intent(net, team: TeamContext, warnings: list[Warning]) -> None:
     """Emit warning if Internet routing intent is not configured on the hub."""
     try:
         intents = list(net.routing_intent.list(team.rg_name, team.hub_name))
     except Exception:
-        return  # hub may not exist yet — no warning needed
-
-    if not intents:
-        warnings.append(Warning(
-            key="no_internet_intent",
-            message="No Internet routing policy on hub",
-        ))
         return
-
-    policies    = intents[0].routing_policies or []
+    if not intents:
+        warnings.append(Warning(key="no_internet_intent",
+                                message="No Internet routing policy on hub"))
+        return
+    policies     = intents[0].routing_policies or []
     destinations = {d for p in policies for d in (p.destinations or [])}
-
     if "Internet" not in destinations:
-        warnings.append(Warning(
-            key="no_internet_intent",
-            message="No Internet routing policy on hub",
-        ))
-
-
-def _find_slb_public_ip(net, managed_rg: str, team: TeamContext) -> str | None:
-    """
-    List load balancers in the NVA managed RG and return the first public
-    frontend IP address found.
-    """
-    try:
-        lbs = list(net.load_balancers.list(managed_rg))
-    except Exception as e:
-        logger.warning("slb_inbound: team %s — failed to list LBs in %s: %s",
-                       team.team_name, managed_rg, e)
-        return None
-
-    logger.info("slb_inbound: team %s — found %d LB(s) in %s: %s",
-                team.team_name, len(lbs), managed_rg, [lb.name for lb in lbs])
-
-    for lb in lbs:
-        for fic in (lb.frontend_ip_configurations or []):
-            # Public frontend has a public_ip_address reference
-            if fic.public_ip_address:
-                pip_id = fic.public_ip_address.id
-                # Parse RG and name from resource ID
-                parts   = pip_id.split("/")
-                pip_rg  = parts[4]
-                pip_name = parts[-1]
-                try:
-                    pip = net.public_ip_addresses.get(pip_rg, pip_name)
-                    if pip.ip_address:
-                        logger.info("slb_inbound: team %s — SLB %s pip %s",
-                                    team.team_name, lb.name, pip.ip_address)
-                        return pip.ip_address
-                except Exception as e:
-                    logger.warning("slb_inbound: team %s — failed to get PIP %s: %s",
-                                   team.team_name, pip_name, e)
-                    continue
-
-    return None
+        warnings.append(Warning(key="no_internet_intent",
+                                message="No Internet routing policy on hub"))
