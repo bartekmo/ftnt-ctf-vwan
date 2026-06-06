@@ -54,13 +54,6 @@ async def check_all(teams: list[TeamContext]) -> TeamResults:
                 continue
             hub_name = nva.virtual_hub.id.split("/")[-1]
             hub_nvas.setdefault(hub_name, []).append(nva)
-            # Diagnostic: log raw SDK fields for internet ingress
-            logger.info(
-                "slb_inbound DEBUG nva=%s sdk_version_field=%s raw_ingress=%s",
-                nva.name,
-                nva.internet_ingress_public_ips,
-                [getattr(e, "id", None) for e in (nva.internet_ingress_public_ips or [])],
-            )
 
         results: TeamResults = {}
         for team in teams:
