@@ -262,6 +262,18 @@ async def main() -> None:
     teams_with_env = [t for t in teams if t.get("env_id")]
     logger.info("Fetched %d teams (%d with env_id)", len(teams), len(teams_with_env))
 
+    # Pre-populate arm_cache once per run so all probers can use NVA data
+    # regardless of whether check_nva_deployed has already been solved.
+    if teams_with_env:
+        sub_id = os.environ.get("AZURE_SUBSCRIPTION_ID", "")
+        if sub_id:
+            from probers.arm_cache import get_all_nvas, clear_cache
+            clear_cache()
+            try:
+                await get_all_nvas(sub_id)
+            except Exception as e:
+                logger.warning("arm_cache pre-populate failed: %s", e)
+
     # Load challenge index and resolve DB ids from the CTF API
     challenges = load_scored_challenges()
 
