@@ -14,64 +14,12 @@ already populated it).
 import logging
 import os
 from concurrent.futures import ThreadPoolExecutor
-from typing import Optional
-
-import httpx
 
 from probers.base import TeamContext, ProbeResult, TeamResults
+from probers.fmg_client import FMGClient, get_fmg_client
 
 logger = logging.getLogger(__name__)
 _executor = ThreadPoolExecutor(max_workers=2)
-
-
-class FMGClient:
-    """Minimal FortiManager JSON-RPC API client."""
-
-    def __init__(self, host: str, user: str, password: str):
-        self.base_url = f"https://{host}/jsonrpc"
-        self.user     = user
-        self.password = password
-        self.session: Optional[str] = None
-        self._client  = httpx.Client(verify=False, timeout=15)
-
-    def _rpc(self, method: str, params: list) -> dict:
-        payload = {
-            "id":      1,
-            "method":  method,
-            "params":  params,
-            "session": self.session,
-            "verbose": 1,
-        }
-        resp = self._client.post(self.base_url, json=payload)
-        resp.raise_for_status()
-        return resp.json()
-
-    def login(self) -> None:
-        result = self._rpc("exec", [{
-            "url":  "/sys/login/user",
-            "data": {"user": self.user, "passwd": self.password},
-        }])
-        code = result.get("result", [{}])[0].get("status", {}).get("code", -1)
-        if code != 0:
-            raise RuntimeError(f"FMG login failed (code {code}): {result}")
-        self.session = result.get("session")
-        logger.info("check_nva_licensed: FMG login ok, session=%s", bool(self.session))
-
-    def logout(self) -> None:
-        try:
-            self._rpc("exec", [{"url": "/sys/logout"}])
-        except Exception:
-            pass
-        self._client.close()
-
-    def get_devices(self, adom: str) -> list[dict]:
-        result = self._rpc("get", [{
-            "url": f"/dvmdb/adom/{adom}/device",
-        }])
-        res0 = result.get("result", [{}])[0]
-        logger.debug("check_nva_licensed: get_devices(%s) raw result: %s", adom, res0)
-        data = res0.get("data", [])
-        return data if isinstance(data, list) else []
 
 
 async def check_all(teams: list[TeamContext]) -> TeamResults:
@@ -112,22 +60,13 @@ async def check_all(teams: list[TeamContext]) -> TeamResults:
         })
 
         # ── Step 2: FMG connection ────────────────────────────────────────────
-        FMG_IP       = os.environ.get("FMG_IP", "")
-        FMG_USER     = os.environ.get("FMG_USER", "admin")
-        FMG_PASSWORD = os.environ.get("FMG_PASSWORD", "")
-
-        logger.info("check_nva_licensed: step 2 — FMG_IP=%s FMG_USER=%s password_set=%s",
-                    FMG_IP or "(not set)", FMG_USER, bool(FMG_PASSWORD))
-
-        if not FMG_IP:
-            logger.error("check_nva_licensed: FMG_IP not configured")
-            return {t.team_id: ProbeResult(solved=False, detail="FMG_IP not configured") for t in teams}
-
-        fmg = FMGClient(FMG_IP, FMG_USER, FMG_PASSWORD)
+        logger.info("check_nva_licensed: step 2 — connecting to FMG")
         try:
+            fmg = get_fmg_client()
             fmg.login()
+            logger.info("check_nva_licensed: FMG login ok")
         except Exception as e:
-            logger.error("check_nva_licensed: FMG login failed: %s", e)
+            logger.error("check_nva_licensed: FMG connection/login failed: %s", e)
             return {t.team_id: ProbeResult(solved=False, detail=f"FMG login failed: {e}") for t in teams}
 
         # ── Step 3: fetch devices from root + hub ADOMs ───────────────────────
