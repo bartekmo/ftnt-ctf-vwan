@@ -13,7 +13,7 @@ const IMPLEMENTED_PROBERS = new Set([
   'check_nva_bgp',
   'check_spoke_peered',
   'arm_intent_routing',
-  'arm_intent_internet',
+  'slb_inbound',
 ])
 
 interface HubRow {
