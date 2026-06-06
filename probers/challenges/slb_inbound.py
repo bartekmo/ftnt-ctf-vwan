@@ -54,6 +54,13 @@ async def check_all(teams: list[TeamContext]) -> TeamResults:
                 continue
             hub_name = nva.virtual_hub.id.split("/")[-1]
             hub_nvas.setdefault(hub_name, []).append(nva)
+            # Diagnostic: log raw SDK fields for internet ingress
+            logger.info(
+                "slb_inbound DEBUG nva=%s sdk_version_field=%s raw_ingress=%s",
+                nva.name,
+                nva.internet_ingress_public_ips,
+                [getattr(e, "id", None) for e in (nva.internet_ingress_public_ips or [])],
+            )
 
         results: TeamResults = {}
         for team in teams:
@@ -118,6 +125,21 @@ def _collect_inbound_ips(net, team: TeamContext, nvas: list, warnings: list[Warn
     all_pip_ids: list[str] = []
     for nva in nvas:
         entries = nva.internet_ingress_public_ips or []
+        logger.info("slb_inbound: team %s nva %s — internet_ingress_public_ips=%s",
+                    team.team_name, nva.name, entries)
+        if not entries and nva.id:
+            # SDK cache may have been populated by older SDK version without this field.
+            # Re-fetch the NVA directly to get the latest deserialization.
+            try:
+                parts     = nva.id.split("/")
+                nva_rg    = parts[4]
+                nva_name  = parts[-1]
+                fresh_nva = net.network_virtual_appliances.get(nva_rg, nva_name)
+                entries   = fresh_nva.internet_ingress_public_ips or []
+                logger.info("slb_inbound: team %s nva %s — fresh fetch entries=%s",
+                            team.team_name, nva_name, entries)
+            except Exception as e:
+                logger.warning("slb_inbound: team %s — re-fetch NVA failed: %s", team.team_name, e)
         for entry in entries:
             if entry.id:
                 all_pip_ids.append(entry.id)
