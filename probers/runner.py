@@ -77,12 +77,10 @@ def load_scored_challenges() -> list[dict]:
         mdx_path = os.path.join(challenges_dir, slug, "challenge.mdx")
         fm = _parse_mdx_frontmatter(mdx_path)
 
-        # Merge: index.yaml provides id, title, visible, scored
-        # MDX frontmatter provides prober and points
+        # Merge: index.yaml is authoritative for prober name and all metadata.
+        # MDX frontmatter provides points (if not in index.yaml) and content fields.
         merged = {**c}
-        if "prober" in fm:
-            merged["prober"] = fm["prober"]
-        if "points" in fm:
+        if "points" in fm and "points" not in c:
             merged["points"] = fm["points"]
 
         if merged.get("scored") and merged.get("prober"):

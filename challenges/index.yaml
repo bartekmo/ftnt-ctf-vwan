@@ -81,5 +81,5 @@ challenges:
     title: "Configure internet inbound"
     points: 200
     scored: true
-    prober: check_inbound
+    prober: slb_inbound
     visible: true
