@@ -3,7 +3,6 @@ title: "Route Spoke traffic through the hub"
 category: routing
 points: 200
 scored: true
-prober: check_spoke_routing
 hints:
   - text: "Traffic from the spoke to the branch must pass through the FortiGate NVAs, not the native Azure router. This requires a routing intent policy on the hub — look for 'Routing intent' under the hub's settings."
     cost: 20

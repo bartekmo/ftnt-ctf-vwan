@@ -24,7 +24,8 @@ challenges/
 | scored   | bool   | false = informational only, no points, no submit button |
 | visible  | bool   | false = hidden from attendees |
 
-`points` and `prober` belong in MDX frontmatter only, not in `index.yaml`.
+`points` belongs in MDX frontmatter only.
+`prober` belongs in `index.yaml` only (it is copied into the probers Docker image; MDX files are not).
 Order is determined by the position in the list — no separate field needed.
 
 ## MDX frontmatter fields

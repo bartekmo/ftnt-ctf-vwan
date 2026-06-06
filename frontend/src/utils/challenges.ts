@@ -77,7 +77,7 @@ function buildRegistry(): ChallengeEntry[] {
       points:   fm.points   ?? indexEntry.points   ?? 0,
       scored:   indexEntry.scored  ?? false,
       visible:  indexEntry.visible ?? true,
-      ...(fm.prober !== undefined  && { prober: fm.prober }),
+      ...(indexEntry.prober !== undefined && { prober: indexEntry.prober }),
       ...(fm.hints  !== undefined  && { hints:  fm.hints }),
       ...(fm.refs   !== undefined  && { refs:   fm.refs }),
       Component,
