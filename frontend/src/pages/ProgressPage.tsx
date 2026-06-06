@@ -12,6 +12,8 @@ const IMPLEMENTED_PROBERS = new Set([
   'check_nva_licensed',
   'check_nva_bgp',
   'check_spoke_peered',
+  'arm_intent_routing',
+  'arm_intent_internet',
 ])
 
 interface HubRow {
