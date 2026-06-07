@@ -30,30 +30,66 @@ _executor = ThreadPoolExecutor(max_workers=2)
 
 AZURE_VWAN_ASN = 65515
 
-# Matches a neighbor line in "get router info bgp summary" output:
-# 10.100.1.69 4  65515  1668  1666  6  0  0  1d00h13m  3
-# 10.100.1.70 4  65515  ...                             Active
-BGP_SUMMARY_RE = re.compile(
-    r'^(\d+\.\d+\.\d+\.\d+)\s+\d+\s+(\d+)\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\S+)',
-    re.MULTILINE,
-)
+# Pattern to detect valid Up/Down time formats (session is up):
+#   1d20h56m  or  00:05:02  or  2d03h  etc.
+_TIME_UP_RE = re.compile(r'^\d+[dhm]|\d+:\d+:\d+|\d+d\d+h|\d+h\d+m')
 
 
-def _parse_bgp_summary(output: str, target_asn: int) -> list[tuple[str, bool]]:
+def _parse_bgp_summary(output, target_asn: int) -> list[tuple[str, bool, str]]:
     """
-    Parse 'get router info bgp summary' text output.
-    Returns list of (neighbor_ip, is_established) for neighbors with target_asn.
-    State/PfxRcd is a number when established, a word (Idle/Active/…) when not.
+    Parse output of "get router info bgp summary".
+    output may be a string or a list of strings (FMG proxy returns a list).
+    Returns list of (neighbor_ip, is_established, state_detail).
+
+    Columns (space-separated, 10 fields):
+      0: neighbor IP
+      1: BGP version (V)
+      2: remote AS
+      3: MsgRcvd
+      4: MsgSent
+      5: TblVer
+      6: InQ
+      7: OutQ
+      8: Up/Down  ← time since up, or "never"
+      9: State/PfxRcd  ← number = established, string = not established
     """
+    if isinstance(output, list):
+        lines = output
+    else:
+        lines = output.splitlines()
+
     results = []
-    for match in BGP_SUMMARY_RE.finditer(output):
-        neighbor_ip = match.group(1)
-        remote_as   = int(match.group(2))
-        state_field = match.group(3)
+    for raw_line in lines:
+        line = raw_line.strip().rstrip("\r").strip()
+        # Skip header, empty, and non-neighbor lines
+        if not line or not line[0].isdigit():
+            continue
+        cols = line.split()
+        if len(cols) < 10:
+            continue
+        try:
+            remote_as = int(cols[2])
+        except ValueError:
+            continue
         if remote_as != target_asn:
             continue
-        established = state_field.isdigit()
-        results.append((neighbor_ip, established))
+
+        neighbor_ip = cols[0]
+        updown      = cols[8]   # "1d20h56m", "00:05:02", "never"
+        state_field = cols[9]   # number or string like "Idle"
+
+        session_time_valid = bool(_TIME_UP_RE.match(updown)) and updown != "never"
+        state_is_number    = state_field.isdigit()
+
+        if session_time_valid and state_is_number:
+            established  = True
+            state_detail = f"up {updown}, prefixes={state_field}"
+        else:
+            established  = False
+            state_detail = state_field if not state_is_number else f"updown={updown}"
+
+        results.append((neighbor_ip, established, state_detail))
+
     return results
 
 
@@ -142,16 +178,15 @@ async def check_all(teams: list[TeamContext]) -> TeamResults:
                     all_up = False
                     continue
 
-                down = [(ip, up) for ip, up in neighbors if not up]
+                down = [(ip, detail) for ip, up, detail in neighbors if not up]
                 if down:
                     all_up = False
-                    not_up_ips = [ip for ip, _ in down]
+                    not_up_str = ", ".join(
+                        f"{ip} (BGP status is '{detail}')" for ip, detail in down
+                    )
                     warnings.append(Warning(
                         key=f"bgp_down_{device_name}",
-                        message=(
-                            f"BGP sessions not established on {device_name}: "
-                            f"{', '.join(not_up_ips)}"
-                        ),
+                        message=f"BGP sessions not established on {device_name}: {not_up_str}",
                     ))
 
             results[team.team_id] = ProbeResult(
