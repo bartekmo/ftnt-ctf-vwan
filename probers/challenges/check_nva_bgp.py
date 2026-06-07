@@ -35,6 +35,43 @@ AZURE_VWAN_ASN = 65515
 _TIME_UP_RE = re.compile(r'^\d+[dhm]|\d+:\d+:\d+|\d+d\d+h|\d+h\d+m')
 
 
+def _preparse_fmg_output(raw) -> list[str]:
+    """
+    Convert raw FMG proxy CLI output to a clean list of text lines.
+
+    FMG returns a string that looks like a Python dict with single quotes:
+      {'console': ['line1\\r', 'line2\\r', ...]}
+
+    Steps:
+      1. Replace single quotes with double quotes for JSON compatibility
+      2. Parse as JSON
+      3. Extract the 'console' list
+      4. Strip trailing \\r and whitespace from each line
+    """
+    import json as _json
+
+    if isinstance(raw, list):
+        # Already a list — just strip each line
+        return [line.rstrip('\r').strip() for line in raw]
+
+    if not isinstance(raw, str):
+        raw = str(raw)
+
+    # Replace single quotes with double quotes — FMG returns Python-repr style
+    # Use a simple replacement; handles the common case where values don't
+    # contain embedded single quotes
+    json_str = raw.replace("'", '"')
+
+    try:
+        parsed = _json.loads(json_str)
+        lines = parsed.get("console", [])
+    except Exception:
+        # Fallback: treat as plain text with newlines
+        lines = raw.splitlines()
+
+    return [line.rstrip('\r').strip() for line in lines if line.strip()]
+
+
 def _parse_bgp_summary(output, target_asn: int) -> list[tuple[str, bool, str]]:
     """
     Parse output of "get router info bgp summary".
@@ -165,7 +202,9 @@ async def check_all(teams: list[TeamContext]) -> TeamResults:
                             team.team_name, device_name, adom)
                 try:
                     output = fmg.proxy_cli(adom, device_name, "get router info bgp summary")
-                    logger.info("check_nva_bgp: %s output:\n%s", device_name, output)
+                    lines = _preparse_fmg_output(output)
+                    logger.info("check_nva_bgp: %s output lines: %s", device_name, lines)
+                    output = lines
                 except Exception as e:
                     logger.error("check_nva_bgp: proxy_cli failed for %s: %s", device_name, e)
                     all_up = False
@@ -175,7 +214,7 @@ async def check_all(teams: list[TeamContext]) -> TeamResults:
                     ))
                     continue
 
-                neighbors = _parse_bgp_summary(output, AZURE_VWAN_ASN)
+                neighbors = _parse_bgp_summary(output if isinstance(output, list) else _preparse_fmg_output(output), AZURE_VWAN_ASN)
                 logger.info("check_nva_bgp: %s AS %d neighbors: %s",
                             device_name, AZURE_VWAN_ASN,
                             [(ip, "UP" if up else "DOWN", detail)
