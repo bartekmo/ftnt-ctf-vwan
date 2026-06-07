@@ -61,17 +61,22 @@ def _parse_bgp_summary(output, target_asn: int) -> list[tuple[str, bool, str]]:
     results = []
     for raw_line in lines:
         line = raw_line.strip().rstrip("\r").strip()
+        logger.info("check_nva_bgp: parsing line: '%s'", line)
         # Skip header, empty, and non-neighbor lines
         if not line or not line[0].isdigit():
+            logger.info("check_nva_bgp: skipping empty line")
             continue
         cols = line.split()
         if len(cols) < 10:
+            logger.info("check_nva_bgp: skipping line with insufficient columns")
             continue
         try:
             remote_as = int(cols[2])
         except ValueError:
+            logger.info("check_nva_bgp: skipping line with invalid remote AS")
             continue
         if remote_as != target_asn:
+            logger.info("check_nva_bgp: skipping line with unmatched remote AS")
             continue
 
         neighbor_ip = cols[0]
