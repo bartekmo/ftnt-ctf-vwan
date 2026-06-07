@@ -172,7 +172,9 @@ async def check_all(teams: list[TeamContext]) -> TeamResults:
 
                 neighbors = _parse_bgp_summary(output, AZURE_VWAN_ASN)
                 logger.info("check_nva_bgp: %s AS %d neighbors: %s",
-                            device_name, AZURE_VWAN_ASN, neighbors)
+                            device_name, AZURE_VWAN_ASN,
+                            [(ip, "UP" if up else "DOWN", detail)
+                             for ip, up, detail in neighbors])
 
                 if not neighbors:
                     all_up = False
