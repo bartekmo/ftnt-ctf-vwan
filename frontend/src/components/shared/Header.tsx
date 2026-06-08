@@ -1,9 +1,13 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { useState } from 'react'
 import { LogOut, Shield, LayoutDashboard, Trophy, Users, Server, Activity } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
+import { useEnvData } from '@/hooks/useEnvData'
 
 export default function Header() {
   const { user, clearAuth } = useAuthStore()
+  const env = useEnvData()
+  const [showJoinCode, setShowJoinCode] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -80,8 +84,24 @@ export default function Header() {
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-text)' }}>{user.username}</div>
                 {user.team_name && (
-                  <div style={{ fontSize: '0.7rem', color: 'var(--color-teal)', letterSpacing: '0.05em' }}>
+                  <div
+                    style={{ fontSize: '0.7rem', color: 'var(--color-teal)', letterSpacing: '0.05em', position: 'relative', cursor: 'default', userSelect: 'none' }}
+                    onMouseEnter={() => setShowJoinCode(true)}
+                    onMouseLeave={() => setShowJoinCode(false)}
+                  >
                     {user.team_name}
+                    {showJoinCode && env?.join_code && (
+                      <div style={{
+                        position: 'absolute', right: 0, top: '100%', marginTop: '4px',
+                        background: 'var(--color-surface)', border: '1px solid var(--color-border)',
+                        borderRadius: 'var(--radius-md)', padding: '0.4rem 0.75rem',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                        whiteSpace: 'nowrap', zIndex: 200,
+                      }}>
+                        <div style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.15rem' }}>Join code</div>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: 'var(--color-text)', fontWeight: 700, letterSpacing: '0.1em' }}>{env.join_code}</div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

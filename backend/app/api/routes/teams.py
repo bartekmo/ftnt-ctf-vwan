@@ -45,6 +45,7 @@ def _team_out(team: Team) -> TeamOut:
         name=team.name,
         join_code=team.join_code,
         env_id=team.env_id_str,
+        hub_name=f"hub{team.env_id_str}" if team.env_id_str else None,
         member_count=len(team.members),
         score=sum(s.points_awarded for s in team.solves) - sum(h.points_cost for h in team.hint_uses),
         created_at=team.created_at,
@@ -114,6 +115,7 @@ async def _build_environment(team: Team, db: AsyncSession) -> TeamEnvironmentOut
     return TeamEnvironmentOut(
         team_id=team.id,
         team_name=team.name,
+        join_code=team.join_code,
         env_id=ns,
         hub_name=f"hub{ns}",
         # Azure credentials
@@ -286,6 +288,48 @@ async def get_team_environment(
 # ---------------------------------------------------------------------------
 # Trainer-only team management
 # ---------------------------------------------------------------------------
+
+@router.put("/admin/{team_id}/env-id", status_code=200)
+async def set_team_env_id(
+    team_id: int,
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+    _trainer: User = Depends(get_current_trainer),
+):
+    """Change a team's env_id. Blocked if the new id is already used by another team."""
+    new_env_id_str = str(body.get("env_id", "")).strip().zfill(2)
+    new_env_id_int = int(new_env_id_str)
+
+    # Check for conflict
+    conflict = await db.execute(
+        select(Team).where(Team.env_id == new_env_id_int, Team.id != team_id)
+    )
+    if conflict.scalar_one_or_none():
+        raise HTTPException(409, f"env_id {new_env_id_str} is already assigned to another team")
+
+    team = (await db.execute(select(Team).where(Team.id == team_id))).scalar_one_or_none()
+    if not team:
+        raise HTTPException(404, "Team not found")
+
+    team.env_id = new_env_id_int
+    return _team_out(team)
+
+
+@router.delete("/admin/{team_id}/solves", status_code=200)
+async def reset_team_solves(
+    team_id: int,
+    db: AsyncSession = Depends(get_db),
+    _trainer: User = Depends(get_current_trainer),
+):
+    """Delete all solves, hint_uses and prober_warnings for a team."""
+    from app.models.models import ChallengeSolve, HintUse, ProberWarning
+    from sqlalchemy import delete as sa_delete
+
+    await db.execute(sa_delete(ChallengeSolve).where(ChallengeSolve.team_id == team_id))
+    await db.execute(sa_delete(HintUse).where(HintUse.team_id == team_id))
+    await db.execute(sa_delete(ProberWarning).where(ProberWarning.team_id == team_id))
+    return {"reset": True, "team_id": team_id}
+
 
 @router.post("/admin/shuffle", status_code=200)
 async def shuffle_teams(
