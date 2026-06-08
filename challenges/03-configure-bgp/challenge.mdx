@@ -1,15 +1,8 @@
 ---
-title: "Configure BGP on the FortiGate NVAs"
+title: "Configure static routes for BGP on the FortiGate NVAs"
 category: routing
 points: 150
 scored: true
-hints:
-  - text: "In the Azure portal, navigate to your Virtual Hub → Network Virtual Appliances. Click on one of the NVAs and open its management URL. You need to configure BGP neighbors pointing to the hub's BGP peer addresses."
-    cost: 15
-  - text: "Go to Network → BGP on the FortiGate. Set the Local AS to the value shown in your environment. Add two BGP neighbors — one for each hub BGP peer IP address — with remote AS 65515."
-    cost: 25
-  - text: "The hub BGP peer IP addresses are shown in the Azure portal under Virtual Hub → BGP Peers. They are typically in the 192.168.x.x range. Make sure to configure identical settings on both NVAs."
-    cost: 20
 refs:
   - label: "Configuring static routes and enabling BGP on FortiGate NVAs"
     url: "https://docs.fortinet.com/document/fortigate-public-cloud/7.4.0/azure-vwan-sd-wan-ngfw-deployment-guide/860717/configuring-static-routes-and-enabling-bgp-on-fortigate-nvas"
@@ -40,13 +33,13 @@ FortiGate NVA 2 ──[eBGP]──► Hub BGP Peer 1 (AS 65515)
 
 <NvaCard />
 
-### (optional) Diagnose the problem
+### (optional) What's not working?
 
-If you want to see where exactly is the problem you are about to fix follow this section. It is not necessary to complete the lab.
+Follow this section if you want to see what exactly is not working and what you need to fix. This section is not necessary to complete the challenge.
 
 1. Connect to one of your FortiGates CLI (either through FortiManager, FortiGate UI or SSH)
 2. Run the following command to see the BGP status: `get router info bgp summary` - you will notice two BGP peers, the state will indicate the session is not working (eg. *State: Active*)
-3. Run `diag sniffer packet any "port 179" 4` to see that Azure vWAN is trying to establish BGP sessions with your FortiGate on port2/sriovslv1, but the TCP SYN packets are dropped
+3. Run `diag sniffer packet any "port 179" 4` to see that Azure vWAN is trying to establish BGP sessions with your FortiGate on port2/sriovslv1, but your FortiGate is not responding
 3. Run `diag sniffer packet any "port 8008" 4` to reveal health checks reaching your FortiGate. You will notice that health checks on port1/sriovslv0 are responded to, but those on port2/sriovslv1 are not
 
 All the problems above will be fixed using static routing.
