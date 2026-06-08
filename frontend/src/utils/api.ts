@@ -42,6 +42,7 @@ export interface Team {
   name: string
   join_code: string
   env_id: string | null
+  hub_name: string | null
   member_count: number
   score: number
   created_at: string
@@ -54,6 +55,7 @@ export interface TeamDetail extends Team {
 export interface TeamEnvironment {
   team_id: number
   team_name: string
+  join_code: string
   env_id: string
   hub_name: string
   azure_username: string
@@ -150,6 +152,10 @@ export const teamsApi = {
   shuffle: () => api.post('/teams/admin/shuffle'),
   moveUser: (user_id: number, team_id: number | null) =>
     api.put('/teams/admin/move', { user_id, team_id }),
+  setEnvId: (team_id: number, env_id: string) =>
+    api.put(`/teams/admin/${team_id}/env-id`, { env_id }),
+  resetSolves: (team_id: number) =>
+    api.delete(`/teams/admin/${team_id}/solves`),
 }
 
 export const challengesApi = {

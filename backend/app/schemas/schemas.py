@@ -95,6 +95,7 @@ class TeamOut(BaseModel):
     name: str
     join_code: str
     env_id: Optional[str] = None
+    hub_name: Optional[str] = None
     member_count: int = 0
     score: int = 0
     created_at: datetime
@@ -110,6 +111,7 @@ class TeamEnvironmentOut(BaseModel):
     """All data an attendee needs to work with their lab environment."""
     team_id: int
     team_name: str
+    join_code: str
     env_id: str
     hub_name: str               # e.g. "hub02" — derived from env_id
 
