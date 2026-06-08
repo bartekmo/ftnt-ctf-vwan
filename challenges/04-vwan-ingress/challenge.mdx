@@ -3,7 +3,11 @@ title: "Internet inbound"
 points: 200
 scored: true
 hints:
+  - text: "The applies_on setting expects name of your Internet Inbound public IP (not the address). You can find it either in Azure portal or using command `exec azure vwan-slb show` in FortiGate CLI."
+    cost: 20
   - text: "If your installation fails at adding 'apply_on' it means you probably didn't pull the SLB list on active FortiGate: `exec azure vwan-slb pull"
+    cost: 25
+  - text: "To configure routing from vNet connected to Virtual Hub through the NVA in that hub one needs to use Routing intent and Routing Policies setting in the Virtual Hub."
     cost: 25
 
 refs:
@@ -17,13 +21,31 @@ refs:
 
 ### Find your SLB
 
-in portal
-in FGT cli
+To find if your hub has inbound enabled go to your vWAN hub > Network Virtual Appliance > Manage Configuratons > Settings. In Internet Inbound section you will find a list of public IP 
+addresses attached to your NVAs and a list of load balancing rules. The Standard Load Balancer handling Internet Inbound traffic is (just like the FortiGates) a managed resource and you 
+have no direct access to it. It can be managed only through  vWAN.
+
+FortiGate 7.4.4 and newer support internet inbound policies using `execute azure vwan-slb` commands and `config azure vwan-slb` configuration block. This setting is not available in FortiGate 
+GUI, but is available in context menu in FortiManager.
+
+![](fmg_vwan_active.png)
 
 ### Choose active instance
 
+Before you create SLB rules for Internet Inbound you must indicate the **active FortiGate**. Active FortiGate will be the one connecting to Azure API and configuring the rules. 
+
+In FortiManager select the group with your NVAs, right-click one of the instances and from AzurevWAN SLB menu select "***Switch to Active***".
+
 ### Add permanent rule
+
+Once you designated the active FortiGate the option **"Edit Rules"** becomes available and allows you to create new **permanent security rules**. For this lab configure a permanent 
+rule for port **TCP 80**. Once configured in FMG remember to use the Install Wizard to push new device settings to the FortiGates.
 
 ### Configure VIP and firewall policy
 
+Azure load balancer inbound rule is only the first step. Configure FortiGate to forward the traffic to the server in your spoke (<EnvVarInline field="spoke_server_private" />).
+
 ### Internet intent routing
+
+As the last step you need to configure the routing. Your spoke web server is now configured to send local traffic through your FortiGate NVAs, but Internet traffic directly bypassing 
+vWAN hub inspection. You need to fix this setting. 
