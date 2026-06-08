@@ -14,6 +14,7 @@ const IMPLEMENTED_PROBERS = new Set([
   'check_spoke_peered',
   'arm_intent_routing',
   'slb_inbound',
+  'fgt_fgsp',
 ])
 
 interface HubRow {
