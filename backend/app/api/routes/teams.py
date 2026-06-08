@@ -307,11 +307,18 @@ async def set_team_env_id(
     if conflict.scalar_one_or_none():
         raise HTTPException(409, f"env_id {new_env_id_str} is already assigned to another team")
 
-    team = (await db.execute(select(Team).where(Team.id == team_id))).scalar_one_or_none()
+    team = (await db.execute(
+        select(Team).options(
+            selectinload(Team.members),
+            selectinload(Team.solves),
+            selectinload(Team.hint_uses),
+        ).where(Team.id == team_id)
+    )).scalar_one_or_none()
     if not team:
         raise HTTPException(404, "Team not found")
 
     team.env_id = new_env_id_int
+    await db.flush()
     return _team_out(team)
 
 
