@@ -92,8 +92,9 @@ async def check_all(teams: list[TeamContext]) -> TeamResults:
 
                 settings   = grp.get("template group setting", {})
                 templates  = settings.get("templates", [])
+                cliprofs   = settings.get("cliprofs", [])
                 scope      = grp.get("scope member", [])
-                n_templates = len(templates)
+                n_templates = len(templates) + len(cliprofs)
                 n_scope     = len(scope)
 
                 logger.info(
