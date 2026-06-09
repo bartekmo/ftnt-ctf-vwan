@@ -3,6 +3,9 @@ title: "Configure static routes for BGP on the FortiGate NVAs"
 category: routing
 points: 150
 scored: true
+hints:
+  - text: "Remember to set the correct distance in the health check static route (do not leave the default value of 10). It needs to match the default one applied on port1 (5). If both routes do not have the same distance set only the one with lower distance will be active in the routing table."
+    cost: 20
 refs:
   - label: "Configuring static routes and enabling BGP on FortiGate NVAs"
     url: "https://docs.fortinet.com/document/fortigate-public-cloud/7.4.0/azure-vwan-sd-wan-ngfw-deployment-guide/860717/configuring-static-routes-and-enabling-bgp-on-fortigate-nvas"
