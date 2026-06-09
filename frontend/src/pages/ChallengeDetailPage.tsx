@@ -16,7 +16,7 @@ export default function ChallengeDetailPage() {
   const { user } = useAuthStore()
 
   const challenge = id ? getChallengeById(id) : undefined
-  const solved     = useTeamSolves()
+  const solved = useTeamSolves()
   const allVisible = challenges.filter(c => c.visible || user?.role === 'trainer')
   const currentIdx = allVisible.findIndex(c => c.id === id)
   const prev = currentIdx > 0 ? allVisible[currentIdx - 1] : null
@@ -32,7 +32,7 @@ export default function ChallengeDetailPage() {
     setUnlockedKeys(new Set())
     challengesApi.hintUnlocks(challenge.id).then(r => {
       setUnlockedKeys(new Set(r.data.map((u: HintUnlock) => u.hint_key)))
-    }).catch(() => {})
+    }).catch(() => { })
   }, [challenge?.id, user?.team_id])
 
   const unlockHint = async (hintIdx: number) => {
@@ -114,9 +114,8 @@ export default function ChallengeDetailPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' }}>
             <div>
               <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                <span className={`badge ${
-                  challenge.category === 'vpn' || challenge.category === 'security' ? 'badge-red' : 'badge-teal'
-                }`}>{challenge.category}</span>
+                <span className={`badge ${challenge.category === 'vpn' || challenge.category === 'security' ? 'badge-red' : 'badge-teal'
+                  }`}>{challenge.category}</span>
                 {!challenge.scored && (
                   <span className="badge badge-gray"><BookOpen size={10} /> Informational</span>
                 )}
@@ -133,6 +132,23 @@ export default function ChallengeDetailPage() {
             )}
           </div>
         </div>
+
+        {/* Reference links */}
+        {challenge.refs && challenge.refs.length > 0 && (
+          <div className="card" style={{ marginBottom: '1.25rem' }}>
+            <h3 style={{ marginBottom: '0.75rem', fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-muted)' }}>
+              References
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {challenge.refs.map(ref => (
+                <a key={ref.url} href={ref.url} target="_blank" rel="noreferrer"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: 'var(--color-teal)', fontSize: '0.9rem' }}>
+                  <ExternalLink size={13} /> {ref.label}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* MDX content */}
         <div className="card" style={{ marginBottom: '1.25rem' }}>
@@ -194,23 +210,6 @@ export default function ChallengeDetailPage() {
                   </div>
                 )
               })}
-            </div>
-          </div>
-        )}
-
-        {/* Reference links */}
-        {challenge.refs && challenge.refs.length > 0 && (
-          <div className="card" style={{ marginBottom: '1.25rem' }}>
-            <h3 style={{ marginBottom: '0.75rem', fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-muted)' }}>
-              References
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {challenge.refs.map(ref => (
-                <a key={ref.url} href={ref.url} target="_blank" rel="noreferrer"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: 'var(--color-teal)', fontSize: '0.9rem' }}>
-                  <ExternalLink size={13} /> {ref.label}
-                </a>
-              ))}
             </div>
           </div>
         )}
