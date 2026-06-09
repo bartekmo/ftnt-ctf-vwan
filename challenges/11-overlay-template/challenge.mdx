@@ -1,19 +1,47 @@
 ---
-title: "Allow cross-regional traffic"
-category: FortiGate
-points: 100
+title: "Create SD-WAN overlay template"
+category: FortiManager
+points: 120
 scored: true
 hints:
-  - text: "Traffic from the spoke to the branch must pass through the FortiGate NVAs, not the native Azure router. This requires a routing intent policy on the hub — look for 'Routing intent' under the hub's settings."
+  - text: "SD-WAN overlay tempalates are not shown in FortiManager by default. Enable them in **Feature Visibility** tab in Device Manager > Provisioning Templates."
     cost: 20
+  - text: "To add overlay objects to SD-WAN templates you have to manually create them. You can do it without interrupting the overlay SD-WAN template wizard by clicking the small **+** sign in the top-right corner of the template selection drop-down."
+    cost: 10
 ---
 
-## Allow cross-regional traffic
+## Overview
 
-Every regional spoke server tries to communicate with all other regions. Because of the intent route this traffic is passing your FortiGates and the FortiGates in the other region. Add a firewall policy allowing this traffic (remember about both inbound and outbound connections).
+In this task you will configure an SD-WAN overlay template connecting branch offices (you have only one at the moment) with FortiGates in vWAN hub.
 
-#### Verify
+### Before you start
 
-Open your spoke web server to see when other regions "go green" (remember, for this to work it's not enough that you allow traffic, other hubs also need to allow it!).
+Before you create the template prepare a group for all branch office FortiGates:
 
-<EnvVar label="Spoke server public shortcut" field="spoke_server_public" prefix="http://" link />
+1. in your ADOM go to **Device Manager** > **Device & Groups**
+1. create a new group called ***branches***
+1. add your branch FortiGate to it
+
+## Create the template
+
+Your SD-WAN network was already planned for you:
+<EnvVar label="Loopback address space" field="sdwan_healthcheck_range" />
+<EnvVar label="ASN" field="fgt_asn" />
+
+In **Provisioning Templates**:
+
+1. create a new dual-hub (active-active) **SD-WAN Overlay** template (note - it's not the same as SD-WAN template), **Name it after yourhub name** (eg. "hub42")
+1. provide your regional loopback address space and ASN in ***Advanced*** section, enable *BGP on Loopback*, disable ADVPN
+1. select each of your hubs as a ***Primary HUB***, select **branches** group as your ***Device Group 1 Assignment*** and enable automatic branch ID assignment
+1. for each *Primary HUB* 
+    - type in "port1" as *WAN Underlay 1*, 
+    - enable **Override IP**, 
+    - type in this instance public IP, 
+    - delete *WAN Underlay 2*, 
+    - change Network Advertisement to **Static**
+1. in Branch section:
+    - type in "port1" for *WAN Underlay 1*
+    - delete *WAN Underlay 2*
+    - set *Network Advertisement* to **Connected** and select **port2**
+1. enable ***Add Overlay objects (...)*** for both Branch and Hub templates, add *Overlay Interfaces and Zones* and *Health Check Servers*
+

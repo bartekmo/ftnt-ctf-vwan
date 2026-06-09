@@ -87,7 +87,7 @@ challenges:
   - id: 11-overlay-template
     title: "Create an SD-WAN overlay template"
     category: FortiManager
-    points: 250
+    points: 120
     scored: true
     prober: overlay_template
     visible: true
