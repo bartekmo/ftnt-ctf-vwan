@@ -83,6 +83,21 @@ async def get_hubs(vwan_name: str) -> list[dict]:
         return []
 
 
+async def get_hub_location(hub_name: str) -> str | None:
+    """Return the Azure region (location) of the given vWAN hub, or None on error."""
+    from app.core.config import azure_settings as _az
+    try:
+        az = _s()
+        if not az.VWAN_NAME:
+            return None
+        hubs = await get_hubs(az.VWAN_NAME)
+        hub = next((h for h in hubs if h.get("name") == hub_name), None)
+        return hub.get("location") if hub else None
+    except Exception as exc:
+        logger.error("get_hub_location failed for %s: %s", hub_name, exc)
+        return None
+
+
 async def get_nva_pips(hub_name: str) -> list[dict]:
     """Return list of {instance_name, pip} for each NVA NIC in the hub.
     Sorted by NVA name then instance name for stable ordering."""

@@ -69,12 +69,13 @@ async def _build_environment(team: Team, db: AsyncSession) -> TeamEnvironmentOut
 
     # Fetch live Azure data in parallel
     import asyncio
-    pips_task    = azure_api.get_nva_pips(hub_name)
-    srv_task     = azure_api.get_spoke_server(ns)
-    branch_task  = azure_api.get_branch(ns)
-    spoke_task   = azure_api.get_spoke(ns)
-    pips, srv, branch, spoke = await asyncio.gather(
-        pips_task, srv_task, branch_task, spoke_task,
+    pips_task     = azure_api.get_nva_pips(hub_name)
+    srv_task      = azure_api.get_spoke_server(ns)
+    branch_task   = azure_api.get_branch(ns)
+    spoke_task    = azure_api.get_spoke(ns)
+    region_task   = azure_api.get_hub_location(hub_name)
+    pips, srv, branch, spoke, region = await asyncio.gather(
+        pips_task, srv_task, branch_task, spoke_task, region_task,
         return_exceptions=True
     )
 
@@ -93,6 +94,7 @@ async def _build_environment(team: Team, db: AsyncSession) -> TeamEnvironmentOut
     srv    = safe(srv, {})
     branch = safe(branch, {})
     spoke  = safe(spoke, {})
+    region = safe(region, None)
 
     # NVAs: sorted list of {instance_name, pip} from ARM API
     nva_list = pips if isinstance(pips, list) else []
@@ -117,6 +119,7 @@ async def _build_environment(team: Team, db: AsyncSession) -> TeamEnvironmentOut
         join_code=team.join_code,
         env_id=ns,
         hub_name=f"hub{ns}",
+        azure_region=region if isinstance(region, str) else None,
         # Azure credentials
         azure_username=f"vwanlab{ns}@fortinetcloud.onmicrosoft.com",
         azure_password=_s().AZURE_STUDENT_PASSWORD,

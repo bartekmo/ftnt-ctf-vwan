@@ -58,6 +58,7 @@ export interface TeamEnvironment {
   join_code: string
   env_id: string
   hub_name: string
+  azure_region: string | null
   azure_username: string
   azure_password: string
   azure_tap: string | null

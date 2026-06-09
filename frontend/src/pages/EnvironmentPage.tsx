@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { teamsApi, infraApi, type TeamEnvironment, type SrvOut, type FmgOut, type HubDetailOut } from '@/utils/api'
+import { teamsApi, infraApi, type TeamEnvironment, type SrvOut, type FmgOut } from '@/utils/api'
 import LabDiagram from '@/components/shared/LabDiagram'
 import { useAuthStore } from '@/store/authStore'
 import {
@@ -14,7 +14,7 @@ export default function EnvironmentPage() {
   const [env, setEnv] = useState<TeamEnvironment | null>(null)
   const [srv, setSrv] = useState<SrvOut | null>(null)
   const [fmg, setFmg] = useState<FmgOut | null>(null)
-  const [hub, setHub] = useState<HubDetailOut | null>(null)
+
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState<string | null>(null)
@@ -34,11 +34,10 @@ export default function EnvironmentPage() {
         Promise.allSettled([
           infraApi.srv(hubName),
           infraApi.fmg(),
-          infraApi.hub(hubName),
-        ]).then(([srvResult, fmgResult, hubResult]) => {
+        ]).then(([srvResult, fmgResult]) => {
           if (srvResult.status === 'fulfilled') setSrv(srvResult.value.data)
           if (fmgResult.status === 'fulfilled') setFmg(fmgResult.value.data)
-          if (hubResult.status === 'fulfilled') setHub(hubResult.value.data)
+
         })
       })
       .catch(() => setError('Failed to load environment data'))
@@ -127,7 +126,7 @@ export default function EnvironmentPage() {
             </>
           )}
           <EnvRow label="Resource group" value={env.rg_name} onCopy={() => copy(env.rg_name, 'rg')} copied={copied === 'rg'} mono />
-          <EnvRow label="Region" value={hub?.location ?? null} mono />
+          <EnvRow label="Region" value={env.azure_region ?? null} mono />
           <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-border)' }}>
             <a href="https://portal.azure.com" target="_blank" rel="noreferrer"
               style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: 'var(--color-teal)' }}>

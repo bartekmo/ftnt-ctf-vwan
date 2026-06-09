@@ -113,7 +113,8 @@ class TeamEnvironmentOut(BaseModel):
     team_name: str
     join_code: str
     env_id: str
-    hub_name: str               # e.g. "hub02" — derived from env_id
+    hub_name: str
+    azure_region: Optional[str] = None               # e.g. "hub02" — derived from env_id
 
     # Azure credentials
     azure_username: str
