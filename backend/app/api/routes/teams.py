@@ -19,9 +19,8 @@ def _s():
 
 router = APIRouter(prefix="/teams", tags=["teams"])
 
-# ASN pool — index == env_id (index 0 unused, teams start at 01)
+# ASN pool — index == env_id (index 00 - trainer, teams start at 01)
 _ASNS = [
-    0,      # placeholder for index 0
     64512, 64513, 64514, 64515, 64516, 64517, 64518, 64519, 64520, 64521,
     64522, 64523, 64524, 64525, 64526, 64527, 64528, 64529, 64530, 64531,
     64532, 64533, 64534, 64535, 64536, 64537, 64538, 64539, 64540, 64541,
