@@ -19,12 +19,12 @@ resource "azurerm_container_app_job" "autopromoter" {
     type         = "UserAssigned"
     identity_ids = [data.azurerm_user_assigned_identity.app_id.id]
   }
-  /*
+
   registry {
     server   = var.acr_login_server
     identity = data.azurerm_user_assigned_identity.app_id.id
   }
-*/
+
   replica_timeout_in_seconds = 300
   replica_retry_limit        = 0
 
@@ -42,7 +42,7 @@ resource "azurerm_container_app_job" "autopromoter" {
   template {
     container {
       name   = "autopromoter"
-      image  = "ghcr.io/bartekmo/ftnt-xperts23-vwan/autopromoter:1.0.8"
+      image  = "${var.acr_login_server}/autopromoter:latest" #"ghcr.io/bartekmo/ftnt-xperts23-vwan/autopromoter:1.0.8"
       cpu    = 0.5
       memory = "1Gi"
 
