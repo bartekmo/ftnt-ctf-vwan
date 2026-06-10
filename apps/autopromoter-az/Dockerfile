@@ -5,4 +5,4 @@ COPY ["package.json", "package-lock.json*", "./"]
 RUN npm install
 
 COPY . .
-CMD ["./runloop.sh"]
+CMD ["node", "index.js"]
