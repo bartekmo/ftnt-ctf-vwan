@@ -91,3 +91,10 @@ challenges:
     scored: true
     prober: overlay_template
     visible: true
+
+  - id: 20-final
+    title: "Final check"
+    points: 300
+    scored: true
+    prober: final_challenge
+    visible: false

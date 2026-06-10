@@ -1,0 +1,31 @@
+---
+title: "Adding Azure routers"
+category: FortiManager
+points: 100
+scored: true
+hints:
+  - text: "SD-WAN overlay tempalates are not shown in FortiManager by default. Enable them in **Feature Visibility** tab in Device Manager > Provisioning Templates."
+    cost: 20
+  - text: "To add overlay objects to SD-WAN templates you have to manually create them. You can do it without interrupting the overlay SD-WAN template wizard by clicking the small **+** sign in the top-right corner of the template selection drop-down."
+    cost: 10
+refs:
+ - url: "https://docs.fortinet.com/document/fortigate-public-cloud/7.4.0/azure-vwan-sd-wan-ngfw-deployment-guide/281453/adding-azure-router-bgp-neighbors"
+   label: "FortiGate documentation: Adding Azure router BGP neighbors"
+---
+
+## Overview
+
+Pushing BGP template from FortiManager will wipe the existing BGP configuration integrating your FortoiGate NVAs with Azure Virtual WAN. To complete the template you must add Azure Route Service back as neighbors.
+
+## Obtain ASN and IP address numbers
+
+In Azure portal go to your vWAN hub and open ***BGP Peers***. Write down IP addresses, ASN of Virtual WAN is always 65515.
+
+> Note: **BGP Peering** is not a functionality allowing to integrate devices **outside** of virtual hub with vWAN BGP. BGP Peering is not used if NVAs are deployed inside virtual hub, but it's a convenient place in console to obtain ASN and IP addresses for BGP configuration.
+
+## Edit BGP template
+
+1. In FortiManager open BGP provisioning template linked to **HUB1**
+1. In the ***Neighbors*** section add both addresses obtained in previous step.
+1. For both addresses as interface type **port2** and enable **ebgp_enforce_multihop** in Advanced Options
+1. Repeat the steps for **HUB2** template
