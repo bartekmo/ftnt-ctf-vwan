@@ -92,6 +92,22 @@ challenges:
     prober: overlay_template
     visible: true
 
+  - id: 12-branch-sdwan
+    title: "Edit SD-WAN template for branch devices"
+    category: FortiManager
+    points: 150
+    scored: true
+    prober: template_sdwan
+    visible: true
+
+  - id: 13-template-azure
+    title: "Re-add Azure routers"
+    category: FortiManager
+    points: 100
+    scored: true
+    prober: template_azure_bgp
+    visible: true 
+
   - id: 20-final
     title: "Final check"
     points: 300

@@ -29,3 +29,11 @@ In Azure portal go to your vWAN hub and open ***BGP Peers***. Write down IP addr
 1. In the ***Neighbors*** section add both addresses obtained in previous step.
 1. For both addresses as interface type **port2** and enable **ebgp_enforce_multihop** in Advanced Options
 1. Repeat the steps for **HUB2** template
+
+## Install templates and verify
+
+You should be ready to push your templates now to the FortiGates.
+
+Log into your hub FortiGate. You should be able to verify the following:
+1. VPN tunnel from branch office is up
+1. BGP sessions to Azure still work 

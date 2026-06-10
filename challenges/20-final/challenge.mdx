@@ -1,8 +1,17 @@
 ---
-title: "Final check"
+title: "Firewalling and final check"
 points: 300
 scored: true
+hints:
+ - text: "Hubs are configured to accept BGP sessions from branch offices loopback address on their own loopback (BGP_Lo). To allow the session you must allow the connection (TCP 179) to pass from VPN1 interface to the loopback interface using a matching forwarding firewall policy."
+   cost: 30
 ---
+
+## Firewalling
+
+You were not configuring firewall policies related to branch office traffic yet. Make sure your traffic from branch office address space to the cloud networks is allowed. Use sd-wan related normalized interfaces like OVERLAY, HUB or HUB1. Make sure you allow the BGP traffic from branch office to hub is allowed by your firewall.
+
+## Final check
 
 For your last step verify the connectivity is working end-to-end.
 
@@ -10,4 +19,4 @@ For your last step verify the connectivity is working end-to-end.
 1. Open browser in windows session and connect to <EnvVarInline field="spoke_server_private" prefix="http://" />
 1. You should see the spoke website.
 
-This is the end of the workshop. Thank you for taking part in it, we hope you enjoyed your time. We'll be happy to learn your feedback - just talk to your trainer!
+This is the end of the workshop. Thank you for your time, we hope you enjoyed it. We'll be happy to learn your feedback - just talk to your trainer!
