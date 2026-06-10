@@ -15,6 +15,7 @@ const IMPLEMENTED_PROBERS = new Set([
   'arm_intent_routing',
   'slb_inbound',
   'fgt_fgsp',
+  'overlay_template',
 ])
 
 interface HubRow {

@@ -2,37 +2,24 @@ import { useState, useEffect } from 'react'
 import api from '@/utils/api'
 import { useAuthStore } from '@/store/authStore'
 
-let _cache: Set<string> | null = null
-let _promise: Promise<Set<string>> | null = null
-
-async function fetchSolvedSlugs(): Promise<Set<string>> {
-  const r = await api.get<string[]>('/solves/my')
-  return new Set(r.data)
-}
-
 /**
  * Returns a Set of challenge slugs solved by the current user's team.
- * Cached for the lifetime of the page session.
+ * Fetches on every mount — the endpoint is a single indexed DB query.
  */
 export function useTeamSolves(): Set<string> {
   const { user } = useAuthStore()
-  const [solved, setSolved] = useState<Set<string>>(_cache ?? new Set())
+  const [solved, setSolved] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (!user) return
-    if (_cache) { setSolved(_cache); return }
-    if (!_promise) {
-      _promise = fetchSolvedSlugs()
-        .then(s => { _cache = s; return s })
-        .catch(() => new Set<string>())
-    }
-    _promise.then(s => setSolved(s))
+    api.get<string[]>('/solves/my')
+      .then(r => setSolved(new Set(r.data)))
+      .catch(() => {})
   }, [user?.id])
 
   return solved
 }
 
 export function invalidateSolvesCache() {
-  _cache = null
-  _promise = null
+  // No-op — kept for API compatibility, no cache to invalidate
 }
