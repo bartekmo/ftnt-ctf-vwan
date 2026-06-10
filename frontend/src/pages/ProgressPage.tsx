@@ -16,6 +16,8 @@ const IMPLEMENTED_PROBERS = new Set([
   'slb_inbound',
   'fgt_fgsp',
   'overlay_template',
+  'template_azure_bgp',
+  'final_challenge',
 ])
 
 interface HubRow {
