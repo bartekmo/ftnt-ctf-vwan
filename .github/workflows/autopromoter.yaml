@@ -48,7 +48,7 @@ jobs:
         if: steps.filter.outputs.autopromoter == 'true' || github.event_name == 'workflow_dispatch'
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ./apps/autopromoter-az
           file: ./apps/autopromoter-az/Dockerfile
           push: true
           tags: |
