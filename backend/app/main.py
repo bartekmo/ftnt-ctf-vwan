@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -48,7 +49,19 @@ async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
+    # ── Step 5: start background App Configuration refresh loop ──────────
+    # Picks up runtime changes to FMG_IP, VWAN_NAME, RG_BRANCHES, FMG_SERIAL,
+    # FLEX_TOKENS without requiring a container restart.
+    from app.services.appconfig_loader import refresh_loop
+    refresh_task = asyncio.create_task(refresh_loop())
+
     yield
+
+    refresh_task.cancel()
+    try:
+        await refresh_task
+    except asyncio.CancelledError:
+        pass
     await engine.dispose()
 
 
