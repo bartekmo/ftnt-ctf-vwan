@@ -20,9 +20,9 @@ export default function ChallengeDetailPage() {
   // Hidden challenges (visible: false) are not directly accessible either —
   // treat them as "not found" for everyone except trainers, matching the
   // ChallengesPage list filter.
-  const challenge = found && (found.visible || user?.role === 'trainer') ? found : undefined
+  const challenge = found && (found.visible) ? found : undefined
   const solved = useTeamSolves()
-  const allVisible = challenges.filter(c => c.visible || user?.role === 'trainer')
+  const allVisible = challenges.filter(c => c.visible)
   const currentIdx = allVisible.findIndex(c => c.id === id)
   const prev = currentIdx > 0 ? allVisible[currentIdx - 1] : null
   const next = currentIdx < allVisible.length - 1 ? allVisible[currentIdx + 1] : null

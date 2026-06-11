@@ -7,11 +7,11 @@ import { useAuthStore } from '@/store/authStore'
 
 const CATEGORY_COLORS: Record<string, string> = {
   networking: 'badge-teal',
-  security:   'badge-red',
-  routing:    'badge-teal',
-  vpn:        'badge-red',
+  security: 'badge-red',
+  routing: 'badge-teal',
+  vpn: 'badge-red',
   monitoring: 'badge-gray',
-  misc:       'badge-gray',
+  misc: 'badge-gray',
 }
 
 export default function ChallengesPage() {
@@ -26,8 +26,8 @@ export default function ChallengesPage() {
     }
   }, [user, navigate])
 
-  const solved   = useTeamSolves()
-  const visible = challenges.filter(c => c.visible || user?.role === 'trainer')
+  const solved = useTeamSolves()
+  const visible = challenges.filter(c => c.visible)
 
   return (
     <div className="page-enter" style={{ maxWidth: 1000, margin: '0 auto', padding: '2rem 1.5rem' }}>
@@ -72,7 +72,8 @@ export default function ChallengesPage() {
 
               {/* Title + meta */}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1.05rem',
+                <div style={{
+                  fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1.05rem',
                   textDecoration: solved.has(challenge.id) ? 'line-through' : 'none',
                   opacity: solved.has(challenge.id) ? 0.55 : 1,
                 }}>
