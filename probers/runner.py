@@ -26,7 +26,7 @@ from typing import Optional
 
 import yaml
 
-from .base import TeamContext, ProbeResult, TeamResults
+from .base import TeamContext, ProbeResult, TeamResults, Warning
 from .scoring import calculate_points
 from . import api_client
 
@@ -44,6 +44,24 @@ CHALLENGES_INDEX = os.environ.get(
     "CHALLENGES_INDEX",
     os.path.join(os.path.dirname(__file__), "..", "challenges", "index.yaml"),
 )
+
+# ── Prober dependency graph ──────────────────────────────────────────────
+# Maps prober_name -> prober_name of the challenge that must be solved
+# first. Checked centrally in probe_challenge() before running the prober:
+# teams that haven't solved the dependency are skipped (not probed) and
+# get a "dependency_not_met" warning explaining what's missing.
+PROBER_DEPENDENCIES: dict[str, str] = {
+    "check_nva_licensed": "check_nva_deployed",
+    "arm_intent_routing": "check_nva_deployed",
+    "check_nva_bgp":      "check_nva_licensed",
+    "fgt_fgsp":           "check_nva_licensed",
+    "spoke_ew":           "check_nva_bgp",
+    "slb_inbound":        "check_nva_bgp",
+    "overlay_template":   "check_nva_licensed",
+    "template_sdwan":     "overlay_template",
+    "template_azure_bgp": "overlay_template",
+    "final_challenge":    "template_azure_bgp",
+}
 
 
 # ── Challenge registry ────────────────────────────────────────────────────
@@ -114,7 +132,7 @@ def build_team_context(team: dict) -> Optional[TeamContext]:
 
 # ── Core probe loop ───────────────────────────────────────────────────────
 
-async def probe_challenge(challenge: dict, teams: list[dict]) -> None:
+async def probe_challenge(challenge: dict, teams: list[dict], prober_to_challenge: dict) -> None:
     """Run one prober against all unsolved teams for a single challenge."""
     prober_name     = challenge["prober"]
     challenge_slug  = challenge["id"]
@@ -154,7 +172,50 @@ async def probe_challenge(challenge: dict, teams: list[dict]) -> None:
         logger.debug("All teams solved '%s' — nothing to check", challenge_title)
         return
 
-    logger.info("Probing '%s' for %d unsolved teams", challenge_title, len(unsolved_teams))
+    # ── Dependency check ───────────────────────────────────────────────────
+    # If this prober depends on another challenge being solved first, split
+    # unsolved_teams into ready (dependency met, will be probed) and blocked
+    # (dependency not met, skipped + warned).
+    ready_teams   = unsolved_teams
+    blocked_teams: list[dict] = []
+
+    dep_prober = PROBER_DEPENDENCIES.get(prober_name)
+    if dep_prober:
+        dep_challenge = prober_to_challenge.get(dep_prober)
+        if dep_challenge:
+            try:
+                dep_solves = await api_client.get_solves_for_challenge(dep_challenge["id"])
+                dep_solved_ids = {s["team_id"] for s in dep_solves}
+            except Exception as e:
+                logger.warning("Failed to fetch dependency solves for '%s': %s", dep_prober, e)
+                dep_solved_ids = set()
+
+            ready_teams   = [t for t in unsolved_teams if t["id"] in dep_solved_ids]
+            blocked_teams = [t for t in unsolved_teams if t["id"] not in dep_solved_ids]
+
+            if blocked_teams:
+                logger.info(
+                    "'%s' skipped for %d team(s) — dependency '%s' not yet solved",
+                    challenge_title, len(blocked_teams), dep_challenge["title"],
+                )
+                for team in blocked_teams:
+                    try:
+                        await api_client.sync_warnings(team["id"], prober_name, [
+                            Warning(
+                                key="dependency_not_met",
+                                message=f"Skipped — requires '{dep_challenge['title']}' to be solved first",
+                            )
+                        ])
+                    except Exception as e:
+                        logger.warning(
+                            "Failed to sync dependency warning for team %s: %s",
+                            team.get("name"), e,
+                        )
+
+    if not ready_teams:
+        return
+
+    logger.info("Probing '%s' for %d unsolved teams", challenge_title, len(ready_teams))
 
     # Build results dict: {team_id: ProbeResult}
     # check_all makes one ARM call and returns results for all teams at once.
@@ -162,7 +223,7 @@ async def probe_challenge(challenge: dict, teams: list[dict]) -> None:
     results: TeamResults = {}
 
     if check_all_fn:
-        ctxs = {t["id"]: build_team_context(t) for t in unsolved_teams}
+        ctxs = {t["id"]: build_team_context(t) for t in ready_teams}
         ctxs = {tid: ctx for tid, ctx in ctxs.items() if ctx}
         try:
             results = await check_all_fn(list(ctxs.values()))
@@ -170,7 +231,7 @@ async def probe_challenge(challenge: dict, teams: list[dict]) -> None:
             logger.error("Prober '%s' check_all raised: %s", prober_name, e)
             return
     else:
-        for team in unsolved_teams:
+        for team in ready_teams:
             ctx = build_team_context(team)
             if not ctx:
                 logger.warning("Team %d has no env_id — skipping", team["id"])
@@ -181,7 +242,7 @@ async def probe_challenge(challenge: dict, teams: list[dict]) -> None:
                 logger.error("Prober '%s' raised for team %s: %s", prober_name, ctx.team_name, e)
                 results[ctx.team_id] = ProbeResult(solved=False, detail=str(e))
 
-    for team in unsolved_teams:
+    for team in ready_teams:
         result = results.get(team["id"])
         if result is None:
             continue
@@ -279,9 +340,12 @@ async def main() -> None:
 
     # No DB challenge lookup needed — slugs and titles come directly from index.yaml
 
+    # Build prober_name -> challenge dict map for dependency resolution
+    prober_to_challenge = {c["prober"]: c for c in challenges if c.get("prober")}
+
     # Run all probers — sequentially to avoid hammering ARM API
     for challenge in challenges:
-        await probe_challenge(challenge, teams_with_env)
+        await probe_challenge(challenge, teams_with_env, prober_to_challenge)
 
     logger.info("Probe run complete")
 

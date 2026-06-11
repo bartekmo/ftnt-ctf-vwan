@@ -1,8 +1,10 @@
 """
 final_challenge.py — prober for challenge 20-final.
 
-Prerequisite: challenge 13-template-azure must be solved by the team.
-  If not solved: emit warning "missing bgp link", do not score.
+Prerequisite: challenge 13-template-azure (template_azure_bgp) must be
+solved first. This is enforced centrally by the runner's
+PROBER_DEPENDENCIES table — teams that haven't solved it are skipped
+before this module is even called, with a "dependency_not_met" warning.
 
 Condition (score): HTTP GET to port 80 of the public IP of VM
   "branch{indx}Prober" in resource group "vwanlab-branches" returns
@@ -11,7 +13,6 @@ Condition (score): HTTP GET to port 80 of the public IP of VM
   {indx} is the team's zero-padded env_id (e.g. "01" for env_id=1).
 
 Warnings:
-  - "missing bgp link": prerequisite challenge 13-template-azure not yet solved
   - "504 error": HTTP response was 504 Gateway Timeout
 
 Discovery:
@@ -33,21 +34,11 @@ from probers.base import TeamContext, ProbeResult, TeamResults, Warning
 logger = logging.getLogger(__name__)
 _executor = ThreadPoolExecutor(max_workers=4)
 
-PREREQ_CHALLENGE = "13-template-azure"
-HTTP_TIMEOUT     = 10
+HTTP_TIMEOUT = 10
 
 
 async def check_all(teams: list[TeamContext]) -> TeamResults:
     import asyncio
-    from probers import api_client
-
-    # ── Fetch prereq solves ───────────────────────────────────────────────
-    prereq_solved_team_ids: set[int] = set()
-    try:
-        solves = await api_client.get_solves_for_challenge(PREREQ_CHALLENGE)
-        prereq_solved_team_ids = {s["team_id"] for s in solves}
-    except Exception as e:
-        logger.warning("final_challenge: could not fetch prereq solves: %s", e)
 
     def _run() -> TeamResults:
         from azure.identity import ManagedIdentityCredential
@@ -75,21 +66,6 @@ async def check_all(teams: list[TeamContext]) -> TeamResults:
 
         for team in teams:
             warnings: list[Warning] = []
-
-            # ── Prereq check ─────────────────────────────────────────────
-            if team.team_id not in prereq_solved_team_ids:
-                logger.info("final_challenge: team %s has not solved %s",
-                            team.team_name, PREREQ_CHALLENGE)
-                warnings.append(Warning(
-                    key="missing_bgp_link",
-                    message="missing bgp link",
-                ))
-                results[team.team_id] = ProbeResult(
-                    solved=False,
-                    detail=f"Prerequisite {PREREQ_CHALLENGE} not yet solved",
-                    warnings=warnings,
-                )
-                continue
 
             # ── Find branch prober VM public IP ──────────────────────────
             indx     = str(team.env_id).zfill(2) if team.env_id else "??"
