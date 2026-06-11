@@ -62,6 +62,13 @@ challenges:
     prober: check_nva_bgp
     visible: true
 
+  - id: 07-health-routing
+    visible: false
+    proger: fgt_health_routing
+    title: "Configure health-based routing"
+    points: 50
+    scored: true
+
   - id: 09-fgsp
     title: "Enable FGSP between FortiGates"
     category: FortiGate

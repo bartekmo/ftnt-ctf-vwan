@@ -4,10 +4,9 @@ category: FortiGate
 points: 80
 scored: true
 hints:
-  - text: "To configure FGSP you need to first find the IP addresses of both FortiGates. The quickest way is to use FortiManager and check their variable mapping for $vwan_port2_ip"
-    cost: 20
-  - text: "FortiManager can use metadata variables in jinja templates. Look for the 'Type' drop-down list at the top."
-    cost: 15
+  - text: "This is a true skip-the-crowd: simply right-click on the NVA group in FortiManager and use the *FGSP Configuration* option. Remember to push FGSP config using Install Wizard."
+    cost: 30
+
 refs:
   - label: "Fortinet docs: Configuring FGSP on FortiGate NVAs (CLI)"
     url: "https://docs.fortinet.com/document/fortigate-public-cloud/7.4.0/azure-vwan-sd-wan-ngfw-deployment-guide/304289/configuring-fgsp-on-fortigate-nvas-cli"
@@ -41,5 +40,5 @@ config system ha
 end
 ```
 
-You can implement the above settings manually on each individual FortiGate or create a provisioning template in FortiManager.
+You can implement the above settings manually on each individual FortiGate or you can use FortiManager. You'll get points once `diag sys ha standalone-peers` shows FGSP peer.
 

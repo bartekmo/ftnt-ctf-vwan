@@ -51,9 +51,9 @@ All the problems above will be fixed using static routing.
 
 As all failing connections are on port2 you need to first find the correct gateway address to use in your configuration.
 
-1. Open CLI on any of your FortiGates (their routes will be identical)
-2. Use command `get router info routing-table all` to reveal CIDR of the subnet connected to port2
-3. Your port2 subnet gateway address is the first address of the subnet
+1. Connect to any of your FortiGates (their routes will be identical)
+2. Use command `get router info routing-table all` (or the route table in Dashboard > Network) to reveal CIDR of the subnet connected to port2
+3. Your port2 subnet gateway address is the **first address of the subnet**
 4. In Azure web console open your hub overview and copy the CIDR of ***Private address space*** of your hub
 
 ![](route-static.png)

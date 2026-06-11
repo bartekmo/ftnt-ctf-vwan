@@ -3,17 +3,18 @@ title: "Allow cross-regional traffic"
 category: FortiGate
 points: 100
 scored: true
-hints:
-  - text: "Traffic from the spoke to the branch must pass through the FortiGate NVAs, not the native Azure router. This requires a routing intent policy on the hub — look for 'Routing intent' under the hub's settings."
-    cost: 20
 ---
 
 ## Allow cross-regional traffic
 
 Every regional spoke server tries to communicate with all other regions. Because of the intent route this traffic is passing your FortiGates and the FortiGates in the other region. Add a firewall policy allowing this traffic (remember about both inbound and outbound connections).
 
+All spoke networks globally fit into a **10.0.0.0/11** space.
+
 #### Verify
 
-Open your spoke web server to see when other regions "go green" (remember, for this to work it's not enough that you allow traffic, other hubs also need to allow it!).
+Open your spoke web server to see when other regions (besides your own) "go green".
 
 <EnvVar label="Spoke server public shortcut" field="spoke_server_public" prefix="http://" link />
+
+> **Note:** for this to work it's not enough that you allow traffic, at least one of the other hubs also needs to allow it!

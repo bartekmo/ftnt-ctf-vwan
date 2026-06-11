@@ -21,7 +21,7 @@ refs:
 
 ### Find your SLB
 
-To find if your hub has inbound enabled go to your vWAN hub > Network Virtual Appliance > Manage Configuratons > Settings. In Internet Inbound section you will find a list of public IP 
+To find out if your hub has inbound enabled, in Azure portal go to your **vWAN hub** > **Third party providers** > **Network Virtual Appliance** > **Manage Configuratons** > **Settings**. In Internet Inbound section you will find a list of public IP 
 addresses attached to your NVAs and a list of load balancing rules. The Standard Load Balancer handling Internet Inbound traffic is (just like the FortiGates) a managed resource and you 
 have no direct access to it. It can be managed only through  vWAN.
 
@@ -41,9 +41,13 @@ In FortiManager select the group with your NVAs, right-click one of the instance
 Once you designated the active FortiGate the option **"Edit Rules"** becomes available and allows you to create new **permanent security rules**. For this lab configure a permanent 
 rule for port **TCP 80**. Once configured in FMG remember to use the Install Wizard to push new device settings to the FortiGates.
 
+![](perm-rule.png)
+
 ### Configure VIP and firewall policy
 
 Azure load balancer inbound rule is only the first step. Configure FortiGate to forward the traffic to the server in your spoke (<EnvVarInline field="spoke_server_private" />).
+
+> Do **NOT** use source NAT for this connection.
 
 ### Internet intent routing
 
