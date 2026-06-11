@@ -59,6 +59,42 @@ class FMGClient:
         data   = result.get("result", [{}])[0].get("data", [])
         return data if isinstance(data, list) else []
 
+    def proxy_get(self, adom: str, device: str, resource: str) -> list:
+        """
+        Call a GET-style FortiOS monitor API endpoint via sys/proxy/json.
+        Returns response.results (a list), or [] on error/empty.
+        Requires the FMG user to have Super_User profile.
+
+        Example resource: "/api/v2/monitor/router/ipv4?ip_mask=168.63.129.16/32"
+        """
+        result = self._rpc("exec", [{
+            "url": "/sys/proxy/json",
+            "data": {
+                "action":   "get",
+                "resource": resource,
+                "target":   [f"adom/{adom}/device/{device}"],
+            },
+        }])
+        res0 = result.get("result", [{}])[0]
+        code = res0.get("status", {}).get("code", -1)
+        if code != 0:
+            msg = res0.get("status", {}).get("message", "unknown error")
+            raise RuntimeError(f"FMG proxy_get failed (code {code}): {msg}")
+
+        data = res0.get("data", [])
+        if not data:
+            return []
+
+        entry = data[0]
+        entry_status = entry.get("status", {}).get("code", -1)
+        if entry_status != 0:
+            msg = entry.get("status", {}).get("message", "unknown error")
+            raise RuntimeError(f"FMG proxy_get device error (code {entry_status}): {msg}")
+
+        response = entry.get("response", {})
+        results  = response.get("results", [])
+        return results if isinstance(results, list) else []
+
     def proxy_cli(self, adom: str, device: str, cli_command: str) -> str:
         """
         Execute a CLI command on a managed FortiGate via sys/proxy/json.

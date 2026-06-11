@@ -18,6 +18,7 @@ const IMPLEMENTED_PROBERS = new Set([
   'overlay_template',
   'template_azure_bgp',
   'final_challenge',
+  'fgt_health_routing',
 ])
 
 interface HubRow {

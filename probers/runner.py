@@ -55,6 +55,7 @@ PROBER_DEPENDENCIES: dict[str, str] = {
     "arm_intent_routing": "check_nva_deployed",
     "check_nva_bgp":      "check_nva_licensed",
     "fgt_fgsp":           "check_nva_licensed",
+    "fgt_health_routing": "check_nva_licensed",
     "spoke_ew":           "check_nva_bgp",
     "slb_inbound":        "check_nva_bgp",
     "overlay_template":   "check_nva_licensed",
