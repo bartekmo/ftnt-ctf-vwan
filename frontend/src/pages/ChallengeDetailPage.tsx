@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ArrowLeft, ArrowRight, ChevronRight,
@@ -229,8 +230,10 @@ export default function ChallengeDetailPage() {
         </div>
       </div>
 
-      {/* Confirm hint modal */}
-      {confirmHint && (
+      {/* Confirm hint modal — rendered via portal so 'position: fixed' is
+          relative to the viewport, not to the .page-enter ancestor (which
+          establishes its own containing block while its CSS animation runs) */}
+      {confirmHint && createPortal(
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -247,7 +250,8 @@ export default function ChallengeDetailPage() {
               <button className="btn btn-danger" onClick={confirmUnlock}>Use Hint (−{confirmHint.cost} pts)</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
