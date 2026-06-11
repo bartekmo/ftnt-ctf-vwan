@@ -16,7 +16,11 @@ export default function ChallengeDetailPage() {
   const navigate = useNavigate()
   const { user } = useAuthStore()
 
-  const challenge = id ? getChallengeById(id) : undefined
+  const found = id ? getChallengeById(id) : undefined
+  // Hidden challenges (visible: false) are not directly accessible either —
+  // treat them as "not found" for everyone except trainers, matching the
+  // ChallengesPage list filter.
+  const challenge = found && (found.visible || user?.role === 'trainer') ? found : undefined
   const solved = useTeamSolves()
   const allVisible = challenges.filter(c => c.visible || user?.role === 'trainer')
   const currentIdx = allVisible.findIndex(c => c.id === id)
