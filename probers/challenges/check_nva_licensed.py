@@ -47,15 +47,20 @@ async def check_all(teams: list[TeamContext]) -> TeamResults:
             all_nvas = list(net.network_virtual_appliances.list())
             logger.info("check_nva_licensed: fetched %d NVAs from ARM", len(all_nvas))
 
-        hub_nva_names: dict[str, list[str]] = {}
+        # hub_nvas: hub_name -> list of (arm_name, expected_instance_count)
+        hub_nvas: dict[str, list[tuple[str, int]]] = {}
         for nva in all_nvas:
             if not nva.virtual_hub or not nva.name:
                 continue
             hub_name = nva.virtual_hub.id.split("/")[-1]
-            hub_nva_names.setdefault(hub_name, []).append(nva.name)
+            try:
+                expected_count = int(nva.nva_sku.bundled_scale_unit) if nva.nva_sku else 1
+            except (ValueError, TypeError, AttributeError):
+                expected_count = 1
+            hub_nvas.setdefault(hub_name, []).append((nva.name, expected_count))
 
         logger.info("check_nva_licensed: hub→NVA map: %s", {
-            k: v for k, v in hub_nva_names.items()
+            k: v for k, v in hub_nvas.items()
             if any(t.hub_name == k for t in teams)
         })
 
@@ -101,11 +106,11 @@ async def check_all(teams: list[TeamContext]) -> TeamResults:
         results: TeamResults = {}
 
         for team in teams:
-            expected_names = hub_nva_names.get(team.hub_name, [])
-            logger.info("check_nva_licensed: team %s hub %s — expected ARM names: %s",
-                        team.team_name, team.hub_name, expected_names)
+            expected_nvas = hub_nvas.get(team.hub_name, [])
+            logger.info("check_nva_licensed: team %s hub %s — expected NVAs (name, instances): %s",
+                        team.team_name, team.hub_name, expected_nvas)
 
-            if not expected_names:
+            if not expected_nvas:
                 results[team.team_id] = ProbeResult(
                     solved=False,
                     detail=f"No NVAs found in ARM for {team.hub_name}",
@@ -119,11 +124,14 @@ async def check_all(teams: list[TeamContext]) -> TeamResults:
                         team.team_name, visible_names)
 
             licensed, missing = [], []
-            for arm_name in expected_names:
-                if any(fmg_name.startswith(arm_name) for fmg_name in visible_names):
+            for arm_name, expected_count in expected_nvas:
+                matching = [n for n in visible_names if n.startswith(arm_name)]
+                if len(matching) >= expected_count:
                     licensed.append(arm_name)
                 else:
-                    missing.append(arm_name)
+                    missing.append(
+                        f"{arm_name} ({len(matching)}/{expected_count} instances in FMG)"
+                    )
 
             logger.info("check_nva_licensed: team %s — licensed=%s missing=%s",
                         team.team_name, licensed, missing)
