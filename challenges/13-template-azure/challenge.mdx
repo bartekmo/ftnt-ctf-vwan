@@ -1,5 +1,5 @@
 ---
-title: "Adding Azure routers"
+title: "Re-adding Azure routers"
 category: FortiManager
 points: 100
 scored: true
@@ -21,7 +21,7 @@ Pushing BGP template from FortiManager will wipe the existing BGP configuration 
 
 In Azure portal go to your vWAN hub and open ***BGP Peers***. Write down IP addresses, ASN of Virtual WAN is always 65515.
 
-> Note: **BGP Peering** is not a functionality allowing to integrate devices **outside** of virtual hub with vWAN BGP. BGP Peering is not used if NVAs are deployed inside virtual hub, but it's a convenient place in console to obtain ASN and IP addresses for BGP configuration.
+> Note: **BGP Peering** is a functionality allowing to integrate devices **outside** of virtual hub with vWAN BGP. BGP Peering is not used if NVAs are deployed inside virtual hub, but it's a convenient place in console to obtain ASN and IP addresses for BGP configuration.
 
 ## Edit BGP template
 

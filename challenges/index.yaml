@@ -120,4 +120,4 @@ challenges:
     points: 300
     scored: true
     prober: final_challenge
-    visible: false
+    visible: true

@@ -45,7 +45,7 @@ rule for port **TCP 80**. Once configured in FMG remember to use the Install Wiz
 
 ### Configure VIP and firewall policy
 
-Azure load balancer inbound rule is only the first step. Configure FortiGate to forward the traffic to the server in your spoke (<EnvVarInline field="spoke_server_private" />).
+Azure load balancer inbound rule is only the first step. Configure FortiGate to forward the traffic to the server in your spoke (<EnvVarInline field="spoke_server_private" />). Remember to use *port forwarding* feature to restrict VIP to the port used in SLB rule.
 
 > Do **NOT** use source NAT for this connection.
 
