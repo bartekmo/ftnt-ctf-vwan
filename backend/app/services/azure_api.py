@@ -83,6 +83,31 @@ async def get_hubs(vwan_name: str) -> list[dict]:
         return []
 
 
+async def hub_exists(hub_name: str) -> bool | None:
+    """
+    Check whether a vWAN hub with the given name exists.
+
+    Returns:
+        True  — hub exists
+        False — hub does not exist (ARM call succeeded, hub not in the list)
+        None  — could not determine (Azure not configured, or ARM call failed)
+    """
+    az = _s()
+    if not az.AZURE_SUBSCRIPTION_ID or not az.VWAN_NAME:
+        return None
+    try:
+        hubs = await get_hubs(az.VWAN_NAME)
+    except Exception as exc:
+        logger.error("hub_exists failed for %s: %s", hub_name, exc)
+        return None
+    if not hubs:
+        # get_hubs() swallows its own exceptions and returns [] — can't
+        # distinguish "no hubs in this vWAN" from "ARM call failed" here,
+        # so don't 404 on an empty result.
+        return None
+    return any(h.get("name") == hub_name for h in hubs)
+
+
 async def get_hub_location(hub_name: str) -> str | None:
     """Return the Azure region (location) of the given vWAN hub, or None on error."""
     from app.core.config import azure_settings as _az

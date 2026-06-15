@@ -74,10 +74,17 @@ async def _build_environment(team: Team, db: AsyncSession) -> TeamEnvironmentOut
     branch_task   = azure_api.get_branch(ns)
     spoke_task    = azure_api.get_spoke(ns)
     region_task   = azure_api.get_hub_location(hub_name)
-    pips, srv, branch, spoke, region = await asyncio.gather(
-        pips_task, srv_task, branch_task, spoke_task, region_task,
+    exists_task   = azure_api.hub_exists(hub_name)
+    pips, srv, branch, spoke, region, hub_exists_result = await asyncio.gather(
+        pips_task, srv_task, branch_task, spoke_task, region_task, exists_task,
         return_exceptions=True
     )
+
+    # hub_exists() returns True/False only when it could positively confirm
+    # the hub list from ARM; None means "couldn't determine" (Azure not
+    # configured, or ARM call failed) and is not treated as "not found".
+    if hub_exists_result is False:
+        raise HTTPException(404, f"Virtual hub {hub_name} not found")
 
     # TAP: prefer value stored on team, fall back to EnvTap keyed by env_id
     from app.models.models import EnvTap

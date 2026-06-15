@@ -40,7 +40,10 @@ export default function EnvironmentPage() {
 
         })
       })
-      .catch(() => setError('Failed to load environment data'))
+      .catch((err) => {
+        const detail = err?.response?.data?.detail
+        setError(typeof detail === 'string' ? detail : 'Failed to load environment data')
+      })
       .finally(() => setLoading(false))
   }, [user, navigate])
 
