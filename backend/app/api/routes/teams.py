@@ -225,8 +225,6 @@ async def join_team(
     team = result.scalar_one_or_none()
     if not team:
         raise HTTPException(404, "Invalid join code")
-    if len(team.members) >= 2:
-        raise HTTPException(400, "Team is full (max 2 members)")
 
     current_user.team_id = team.id
     await db.flush()
@@ -352,7 +350,7 @@ async def shuffle_teams(
     db: AsyncSession = Depends(get_db),
     _trainer: User = Depends(get_current_trainer),
 ):
-    """Randomly reassign all attendees across existing teams (max 2 per team)."""
+    """Randomly reassign all attendees across existing teams (evenly distributed)."""
     import random
 
     attendees_result = await db.execute(select(User).where(User.role == UserRole.attendee))

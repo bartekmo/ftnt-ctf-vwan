@@ -58,7 +58,7 @@ export default function TeamLobbyPage() {
         <Users size={40} color="var(--color-teal)" style={{ marginBottom: '1rem' }} />
         <h2>Join a Team</h2>
         <p className="text-muted" style={{ marginTop: '0.5rem' }}>
-          You need to be on a team to participate. Teams have max 2 members.
+          You need to be on a team to participate.
         </p>
       </div>
 
@@ -78,8 +78,8 @@ export default function TeamLobbyPage() {
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               }}>
                 <span style={{ fontWeight: 600 }}>{t.name}</span>
-                <span className={`badge ${t.member_count >= 2 ? 'badge-gray' : 'badge-teal'}`}>
-                  {t.member_count}/2
+                <span className="badge badge-teal">
+                  {t.member_count}
                 </span>
               </div>
             ))}

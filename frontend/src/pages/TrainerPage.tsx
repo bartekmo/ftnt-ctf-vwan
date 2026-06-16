@@ -212,7 +212,7 @@ export default function TrainerPage() {
                         )}
                       </div>
                     </div>
-                    <span className="badge badge-teal">{members.length}/2</span>
+                    <span className="badge badge-teal">{members.length}</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '0.75rem' }}>
                     {members.map(u => (
@@ -223,7 +223,7 @@ export default function TrainerPage() {
                     ))}
                     {members.length === 0 && <p style={{ fontSize: '0.8rem', color: 'var(--color-text-dim)' }}>No members</p>}
                   </div>
-                  {members.length < 2 && unassigned.length > 0 && (
+                  {unassigned.length > 0 && (
                     <select defaultValue="" onChange={e => { if (e.target.value) { moveUser(Number(e.target.value), team.id); e.currentTarget.value = '' } }} className="form-input" style={{ fontSize: '0.8rem', padding: '0.4rem 0.6rem' }}>
                       <option value="">Add attendee…</option>
                       {unassigned.map(u => <option key={u.id} value={u.id}>{u.username}</option>)}
