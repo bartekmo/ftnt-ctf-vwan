@@ -1,5 +1,7 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
+import { authApi } from '@/utils/api'
 import Header from '@/components/shared/Header'
 import AuthPage from '@/pages/AuthPage'
 import TeamLobbyPage from '@/pages/TeamLobbyPage'
@@ -22,7 +24,39 @@ function RequireTrainer({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+const USER_REFRESH_INTERVAL_MS = 30_000
+
+/**
+ * Keeps the cached user (localStorage + store) in sync with the server.
+ * Fixes stale team_name/team_id/role shown in the Header after a trainer
+ * moves a user between teams or changes their role — the JWT and the
+ * cached user object are otherwise only set once, at login, and never
+ * refreshed on their own.
+ */
+function useUserRefresh() {
+  const { user, token, setAuth } = useAuthStore()
+
+  useEffect(() => {
+    if (!user || !token) return
+
+    const refresh = async () => {
+      try {
+        const r = await authApi.me()
+        setAuth(r.data, token)
+      } catch {
+        // Network hiccup or expired token — the existing 401 interceptor
+        // in api.ts already handles redirecting to /login on auth failure.
+      }
+    }
+
+    refresh()
+    const interval = setInterval(refresh, USER_REFRESH_INTERVAL_MS)
+    return () => clearInterval(interval)
+  }, [user?.id, token])
+}
+
 export default function App() {
+  useUserRefresh()
   return (
     <BrowserRouter>
       <Header />
