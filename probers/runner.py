@@ -243,6 +243,33 @@ async def probe_challenge(challenge: dict, teams: list[dict], prober_to_challeng
                 logger.error("Prober '%s' raised for team %s: %s", prober_name, ctx.team_name, e)
                 results[ctx.team_id] = ProbeResult(solved=False, detail=str(e))
 
+    # ── Score all teams solved in THIS pass identically ────────────────────
+    # All teams discovered as solved within a single prober run happened
+    # "simultaneously" from the CTF's perspective — there is no meaningful
+    # temporal ordering between them. They must all receive the same
+    # solve_position, the same solved_at timestamp, and therefore identical
+    # points. The previous implementation incremented solve_position and
+    # advanced 'now' per team inside the loop, which gave different scores
+    # to teams discovered as solved in the very same pass purely due to
+    # Python dict/list iteration order — a bug, not an intended tie-break.
+    now = datetime.now(timezone.utc)
+    newly_solved_teams = [t for t in ready_teams if results.get(t["id"]) and results[t["id"]].solved]
+
+    total_points = bonus = 0
+    is_first_blood = False
+    if newly_solved_teams:
+        total_points, is_first_blood, bonus = calculate_points(
+            base_points     = base_points,
+            position        = solve_position,
+            first_blood_at  = first_blood_at,
+            solved_at       = now,
+        )
+        if is_first_blood:
+            # All teams tied for first blood in this pass share the bonus —
+            # is_first_blood remains True for all of them, and first_blood_at
+            # for any LATER pass should reference this pass's timestamp.
+            first_blood_at = now
+
     for team in ready_teams:
         result = results.get(team["id"])
         if result is None:
@@ -265,15 +292,8 @@ async def probe_challenge(challenge: dict, teams: list[dict], prober_to_challeng
             logger.debug("  ✗ %s: %s", team.get("name"), result.detail or "not solved")
             continue
 
-        # Solved — calculate score and record
-        now = datetime.now(timezone.utc)
-        total_points, is_first_blood, bonus = calculate_points(
-            base_points  = base_points,
-            position     = solve_position,
-            first_blood_at = first_blood_at,
-            solved_at    = now,
-        )
-
+        # Solved — all teams in this pass share solve_position, total_points,
+        # bonus, and is_first_blood (computed once above).
         logger.info(
             "  ✓ %s solved '%s' — pos=%d base=%d bonus=%d total=%d%s",
             team.get("name"), challenge_title, solve_position,
@@ -293,10 +313,6 @@ async def probe_challenge(challenge: dict, teams: list[dict], prober_to_challeng
             logger.error("Failed to record solve for team %s: %s", team.get("name"), e)
             continue
 
-        # Update tracking for subsequent teams in this same tick
-        if is_first_blood:
-            first_blood_at = now
-        solve_position += 1
         solved_team_ids.add(team["id"])
 
 
