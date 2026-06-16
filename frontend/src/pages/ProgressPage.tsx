@@ -19,6 +19,7 @@ const IMPLEMENTED_PROBERS = new Set([
   'template_azure_bgp',
   'final_challenge',
   'fgt_health_routing',
+  'spoke_ew',
 ])
 
 interface HubRow {
