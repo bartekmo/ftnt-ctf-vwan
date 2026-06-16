@@ -20,6 +20,7 @@ const IMPLEMENTED_PROBERS = new Set([
   'final_challenge',
   'fgt_health_routing',
   'spoke_ew',
+  'template_sdwan',
 ])
 
 interface HubRow {
