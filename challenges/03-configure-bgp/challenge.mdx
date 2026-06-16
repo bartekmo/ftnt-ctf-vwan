@@ -13,6 +13,8 @@ refs:
     url: "https://docs.fortinet.com/document/fortigate/7.4.0/administration-guide/210236"
   - label: "Azure vWAN BGP peers"
     url: "https://learn.microsoft.com/en-us/azure/virtual-wan/scenario-bgp-peering-hub"
+  - label: "Technical Tip: Selecting Static Route over DHCP"
+    url: "https://community.fortinet.com/fortigate-3/technical-tip-selecting-static-route-over-dhcp-199907"
 ---
 
 ## Overview
@@ -65,7 +67,7 @@ FortiGates in vWAN hub are designed to be managed using FortiManager. You will u
 1. Open FortiManager web console
 2. in **Device Manager** go to **Provisioning templates** and create a new static routing template
 3. Add a static route to your virtual hub private address space you discovered in earlier step. Use port2 and its subnet gateway. 
-4. Add a static route to **168.63.129.16** host (this address is always used for health probes in Azure) on port2 with gateway set to value you discovered in previous step. **Important:** you MUST use distance value of **5** for the health probe route 
+4. Add a static route to **168.63.129.16** host (this address is always used for health probes in Azure) on port2 with gateway set to value you discovered in previous step. **Important:** you MUST use distance value of **5** for the health probe route to make it active together with the route on port1. 
 
 ## Finish validate configuration
 
