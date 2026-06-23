@@ -139,20 +139,20 @@ async def reset_event(
     return {"reset": True}
 
 
-@router.get("/solves/my", response_model=list[str])
+@router.get("/solves/my", response_model=dict[str, int])
 async def my_solves(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Return challenge slugs solved by the current user's team."""
+    """Return map of challenge_slug -> points_awarded for the current user's team."""
     if not current_user.team_id:
-        return []
+        return {}
     result = await db.execute(
-        select(ChallengeSolve.challenge_slug).where(
+        select(ChallengeSolve.challenge_slug, ChallengeSolve.points_awarded).where(
             ChallengeSolve.team_id == current_user.team_id
         )
     )
-    return [row[0] for row in result.all()]
+    return {row[0]: row[1] for row in result.all()}
 
 
 @router.post("/solves", response_model=SolveOut, status_code=201)

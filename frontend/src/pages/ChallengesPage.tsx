@@ -95,12 +95,18 @@ export default function ChallengesPage() {
               {/* Points */}
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
                 {challenge.scored && challenge.points > 0 ? (
-                  <>
-                    <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1.25rem', color: 'var(--color-red)' }}>
-                      {challenge.points}
+                  solved.has(challenge.id) ? (
+                    <div style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: '1rem', color: 'var(--color-success)', letterSpacing: '0.05em' }}>
+                      DONE
                     </div>
-                    <div style={{ fontSize: '0.65rem', color: 'var(--color-text-dim)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>pts</div>
-                  </>
+                  ) : (
+                    <>
+                      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1.25rem', color: 'var(--color-red)' }}>
+                        {challenge.points}
+                      </div>
+                      <div style={{ fontSize: '0.65rem', color: 'var(--color-text-dim)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>pts</div>
+                    </>
+                  )
                 ) : (
                   <BookOpen size={18} color="var(--color-text-dim)" />
                 )}

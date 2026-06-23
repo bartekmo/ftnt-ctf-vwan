@@ -129,10 +129,21 @@ export default function ChallengeDetailPage() {
             </div>
             {challenge.scored && challenge.points > 0 && (
               <div style={{ textAlign: 'center', flexShrink: 0 }}>
-                <div style={{ fontFamily: 'var(--font-display)', fontSize: '2.5rem', fontWeight: 900, color: 'var(--color-red)', lineHeight: 1 }}>
-                  {challenge.points}
-                </div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>base points</div>
+                {solved.has(challenge.id) ? (
+                  <>
+                    <div style={{ fontFamily: 'var(--font-display)', fontSize: '2.5rem', fontWeight: 900, color: 'var(--color-success)', lineHeight: 1 }}>
+                      {solved.get(challenge.id)}
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--color-success)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 }}>done</div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontFamily: 'var(--font-display)', fontSize: '2.5rem', fontWeight: 900, color: 'var(--color-red)', lineHeight: 1 }}>
+                      {challenge.points}
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>base points</div>
+                  </>
+                )}
               </div>
             )}
           </div>
