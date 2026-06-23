@@ -115,7 +115,6 @@ export default function EnvironmentPage() {
         {/* Azure Credentials */}
         <EnvCard icon={<Key size={18} color="var(--color-red)" />} title="Azure Credentials">
           <EnvRow label="Username" value={env.azure_username} onCopy={() => copy(env.azure_username, 'az_user')} copied={copied === 'az_user'} />
-          <EnvRow label="Password" value={env.azure_password} secret onCopy={() => copy(env.azure_password, 'az_pass')} copied={copied === 'az_pass'} />
           {env.azure_tap && (
             <>
               <EnvRow label="Temp. Access Pass" value={env.azure_tap} secret onCopy={() => copy(env.azure_tap!, 'tap')} copied={copied === 'tap'} />
@@ -160,14 +159,6 @@ export default function EnvironmentPage() {
           <EnvRow label="Azure vWAN" value={String(env.azure_asn)} onCopy={() => copy(String(env.azure_asn), 'asn_az')} copied={copied === 'asn_az'} mono />
         </EnvCard>
 
-        {/* Networking */}
-        <EnvCard icon={<Cpu size={18} color="var(--color-teal)" />} title="Networking">
-          <EnvRow label="Overlay network" value={env.overlay_network} onCopy={() => copy(env.overlay_network, 'overlay')} copied={copied === 'overlay'} mono />
-          <EnvRow label="SD-WAN healthcheck" value={env.sdwan_healthcheck_range} onCopy={() => copy(env.sdwan_healthcheck_range, 'hc')} copied={copied === 'hc'} mono />
-          <EnvRow label="Spoke CIDR" value={env.spoke_cidr} onCopy={() => copy(env.spoke_cidr, 'spoke_cidr')} copied={copied === 'spoke_cidr'} mono />
-          <EnvRow label="Branch CIDR" value={env.branch_cidr} onCopy={() => copy(env.branch_cidr, 'branch_cidr')} copied={copied === 'branch_cidr'} mono />
-        </EnvCard>
-
         {/* Hub NVAs */}
         <EnvCard icon={<Server size={18} color="var(--color-red)" />} title="Hub NVAs (FortiGates)">
           <NvaRow name={env.fgt_nva1_name} pip={env.fgt_nva1_pip} onCopy={() => copy(env.fgt_nva1_pip, 'fgt1')} copied={copied === 'fgt1'} />
@@ -180,17 +171,17 @@ export default function EnvironmentPage() {
           <EnvRow label="Token 2" value={env.flex_token2} onCopy={() => copy(env.flex_token2, 'flex2')} copied={copied === 'flex2'} mono />
         </EnvCard>
 
-        {/* Spoke VNet — live data from /infra/hubs/{hub}/srv */}
-        <EnvCard icon={<GitBranch size={18} color="var(--color-teal)" />} title="Spoke VNet">
-          <EnvRow label="Server (private)" value={spokePrivate} onCopy={() => copy(spokePrivate, 'spoke_priv')} copied={copied === 'spoke_priv'} mono />
-          <EnvRow label="Server (public)" value={spokePublic} onCopy={() => copy(spokePublic, 'spoke_pub')} copied={copied === 'spoke_pub'} mono />
-          <div style={{ marginTop: '0.6rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}>
-            <span className="text-muted">VNet peering:</span>
-            <span className={`badge ${env.spoke_peered ? 'badge-green' : 'badge-gray'}`}>
-              {env.spoke_peered ? 'Connected' : 'Not peered'}
-            </span>
-          </div>
-        </EnvCard>
+      </div>
+
+      {/* Network topology diagram */}
+      <div style={{ marginTop: '1.5rem' }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.85rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-text-muted)', marginBottom: '0.75rem' }}>
+          Network Topology
+        </div>
+        <LabDiagram envId={env.env_id} hubName={`hub${env.env_id}`} />
+      </div>
+
+      <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))' }}>
 
         {/* Branch */}
         <EnvCard icon={<GitBranch size={18} color="var(--color-red)" />} title="Branch Site">
@@ -206,15 +197,18 @@ export default function EnvironmentPage() {
           )}
         </EnvCard>
 
+        {/* Spoke VNet — live data from /infra/hubs/{hub}/srv */}
+        <EnvCard icon={<GitBranch size={18} color="var(--color-teal)" />} title="Spoke VNet">
+          <EnvRow label="Server (private)" value={spokePrivate} onCopy={() => copy(spokePrivate, 'spoke_priv')} copied={copied === 'spoke_priv'} mono />
+          <EnvRow label="Server (public)" value={spokePublic} onCopy={() => copy(spokePublic, 'spoke_pub')} copied={copied === 'spoke_pub'} mono />
+          <div style={{ marginTop: '0.6rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}>
+            <span className="text-muted">VNet peering:</span>
+            <span className={`badge ${env.spoke_peered ? 'badge-green' : 'badge-gray'}`}>
+              {env.spoke_peered ? 'Connected' : 'Not peered'}
+            </span>
+          </div>
+        </EnvCard>
 
-      </div>
-
-      {/* Network topology diagram */}
-      <div style={{ marginTop: '1.5rem' }}>
-        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.85rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-text-muted)', marginBottom: '0.75rem' }}>
-          Network Topology
-        </div>
-        <LabDiagram envId={env.env_id} hubName={`hub${env.env_id}`} />
       </div>
 
       {/* Useful links */}
