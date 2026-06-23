@@ -146,8 +146,7 @@ export default function EnvironmentPage() {
           <LinkRow name="Branch Windows desktop" pip={`rdp://${env.branch_win_pip}`} onCopy={() => copy(env.branch_win_pip, 'br_win')} copied={copied === 'br_win'} />
           
         </EnvCard>
-
-        {/* FortiManager — live data from /api/infra/fmg */}
+{/*}
         <EnvCard icon={<Server size={18} color="var(--color-teal)" />} title="FortiManager">
           <EnvRow label="Username (FMG, RDP, branch)" value={`vwanlab${env.env_id}`} onCopy={() => copy(`vwanlab${env.env_id}`, 'fmg_user')} copied={copied === 'fmg_user'} mono />
           <EnvRow label="Password" value={env.azure_password} secret onCopy={() => copy(env.azure_password, 'az_pass')} copied={copied === 'az_pass'} />
@@ -163,24 +162,21 @@ export default function EnvironmentPage() {
           )}
         </EnvCard>
 
-        {/* BGP / ASNs */}
         <EnvCard icon={<Network size={18} color="var(--color-teal)" />} title="BGP ASNs">
           <EnvRow label="FortiGate NVAs" value={String(env.fgt_asn)} onCopy={() => copy(String(env.fgt_asn), 'asn_fgt')} copied={copied === 'asn_fgt'} mono />
           <EnvRow label="Azure vWAN" value={String(env.azure_asn)} onCopy={() => copy(String(env.azure_asn), 'asn_az')} copied={copied === 'asn_az'} mono />
         </EnvCard>
 
-        {/* Hub NVAs */}
         <EnvCard icon={<Server size={18} color="var(--color-red)" />} title="Hub NVAs (FortiGates)">
           <NvaRow name={env.fgt_nva1_name} pip={env.fgt_nva1_pip} onCopy={() => copy(env.fgt_nva1_pip, 'fgt1')} copied={copied === 'fgt1'} />
           <NvaRow name={env.fgt_nva2_name} pip={env.fgt_nva2_pip} onCopy={() => copy(env.fgt_nva2_pip, 'fgt2')} copied={copied === 'fgt2'} />
         </EnvCard>
 
-        {/* FortiFlex */}
         <EnvCard icon={<Key size={18} color="var(--color-teal)" />} title="FortiFlex Tokens (NVA Licenses)">
           <EnvRow label="Token 1" value={env.flex_token1} onCopy={() => copy(env.flex_token1, 'flex1')} copied={copied === 'flex1'} mono />
           <EnvRow label="Token 2" value={env.flex_token2} onCopy={() => copy(env.flex_token2, 'flex2')} copied={copied === 'flex2'} mono />
         </EnvCard>
-
+*/}
       </div>
 
       {/* Network topology diagram */}
