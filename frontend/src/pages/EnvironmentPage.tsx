@@ -137,6 +137,17 @@ export default function EnvironmentPage() {
           </div>
         </EnvCard>
 
+        <EnvCard icon={<Key size={18} color="var(--color-teal)" />} title="Server Credentials">
+          <EnvRow label="Username (FMG, RDP, branch FGT)" value={`vwanlab${env.env_id}`} onCopy={() => copy(`vwanlab${env.env_id}`, 'fmg_user')} copied={copied === 'fmg_user'} mono />
+          <EnvRow label="Password" value={env.azure_password} secret onCopy={() => copy(env.azure_password, 'az_pass')} copied={copied === 'az_pass'} />
+          <EnvRow label="FortiManager IP / FQDN" value={fmgIp} mono onCopy={() => copy(fmgIp, 'fmg')} copied={copied === 'fmg'} />
+        
+          <NvaRow name="FortiManager" pip={fmgIp} onCopy={() => copy(fmgIp, 'fmg')} copied={copied === 'fmg'} />
+          <NvaRow name="Remote FortiGate" pip={fmgIp} onCopy={() => copy(fmgIp, 'fmg')} copied={copied === 'fmg'} />
+          <NvaRow name="Branch Windows desktop" pip={fmgIp} onCopy={() => copy(fmgIp, 'fmg')} copied={copied === 'fmg'} />
+          
+        </EnvCard>
+
         {/* FortiManager — live data from /api/infra/fmg */}
         <EnvCard icon={<Server size={18} color="var(--color-teal)" />} title="FortiManager">
           <EnvRow label="Username (FMG, RDP, branch)" value={`vwanlab${env.env_id}`} onCopy={() => copy(`vwanlab${env.env_id}`, 'fmg_user')} copied={copied === 'fmg_user'} mono />
