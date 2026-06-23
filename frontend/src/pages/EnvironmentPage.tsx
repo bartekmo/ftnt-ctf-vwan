@@ -337,7 +337,7 @@ function LinkRow({ name, pip, onCopy, copied }: {
   return (
     <div style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: '0.6rem 0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem' }}>
       <div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text)', fontWeight: 600, display: 'inline-block'; right-margin: '15px'; }}>{name}</div>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text)', fontWeight: 600, display: 'inline-block', marginRight: '15px' }}>{name}</div>
         {pending ? (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', color: 'var(--color-text-dim)', fontFamily: 'var(--font-mono)', marginTop: '0.2rem' }}>
             <Clock size={10} /> pending deployment
