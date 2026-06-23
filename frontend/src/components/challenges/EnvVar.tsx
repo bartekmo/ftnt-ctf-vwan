@@ -117,7 +117,7 @@ export function EnvVar({ field, value: staticValue, prefix = '', suffix = '', la
           letterSpacing: '0.06em',
           textTransform: 'uppercase',
           flexShrink: 0,
-          minWidth: 130,
+          minWidth: 180,
         }}>
           {label}
         </span>
