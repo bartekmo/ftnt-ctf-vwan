@@ -140,11 +140,10 @@ export default function EnvironmentPage() {
         <EnvCard icon={<Key size={18} color="var(--color-teal)" />} title="Server Credentials">
           <EnvRow label="Username (FMG, RDP, branch FGT)" value={`vwanlab${env.env_id}`} onCopy={() => copy(`vwanlab${env.env_id}`, 'fmg_user')} copied={copied === 'fmg_user'} mono />
           <EnvRow label="Password" value={env.azure_password} secret onCopy={() => copy(env.azure_password, 'az_pass')} copied={copied === 'az_pass'} />
-          <EnvRow label="FortiManager IP / FQDN" value={fmgIp} mono onCopy={() => copy(fmgIp, 'fmg')} copied={copied === 'fmg'} />
         
-          <NvaRow name="FortiManager" pip={fmgIp} onCopy={() => copy(fmgIp, 'fmg')} copied={copied === 'fmg'} />
-          <NvaRow name="Remote FortiGate" pip={fmgIp} onCopy={() => copy(fmgIp, 'fmg')} copied={copied === 'fmg'} />
-          <NvaRow name="Branch Windows desktop" pip={fmgIp} onCopy={() => copy(fmgIp, 'fmg')} copied={copied === 'fmg'} />
+          <LinkRow name="FortiManager" pip={`https://${fmgIp}`} onCopy={() => copy(fmgIp, 'fmg')} copied={copied === 'fmg'} />
+          <LinkRow name="Branch FortiGate" pip={`https://${env.branch_fgt_pip}`} onCopy={() => copy(env.branch_fgt_pip, 'br_fgt')} copied={copied === 'br_fgt'} />
+          <LinkRow name="Branch Windows desktop" pip={`rdp://${env.branch_win_pip}`} onCopy={() => copy(env.branch_win_pip, 'br_win')} copied={copied === 'br_win'} />
           
         </EnvCard>
 
@@ -317,6 +316,35 @@ function NvaRow({ name, pip, onCopy, copied }: {
         ) : (
           <a href={`https://${pip}`} target="_blank" rel="noreferrer"
             style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--color-teal)', marginTop: '0.2rem', display: 'block' }}>
+            {pip} ↗
+          </a>
+        )}
+      </div>
+      {!pending && (
+        <button onClick={onCopy} style={{ background: 'none', border: 'none', cursor: 'pointer', color: copied ? 'var(--color-success)' : 'var(--color-text-dim)', flexShrink: 0 }}>
+          {copied ? <CheckCheck size={14} /> : <Copy size={14} />}
+        </button>
+      )}
+    </div>
+  )
+}
+
+
+function LinkRow({ name, pip, onCopy, copied }: {
+  name: string | null | undefined; pip: string | null | undefined; onCopy: () => void; copied: boolean
+}) {
+  const pending = pip == null || pip === ''
+  return (
+    <div style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: '0.6rem 0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem' }}>
+      <div>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text)', fontWeight: 600, display: 'inline-block'; right-margin: '15px'; }}>{name}</div>
+        {pending ? (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', color: 'var(--color-text-dim)', fontFamily: 'var(--font-mono)', marginTop: '0.2rem' }}>
+            <Clock size={10} /> pending deployment
+          </span>
+        ) : (
+          <a href={`${pip}`} target="_blank" rel="noreferrer"
+            style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--color-teal)', marginTop: '0.2rem', display: 'inline-block' }}>
             {pip} ↗
           </a>
         )}
