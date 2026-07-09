@@ -381,13 +381,5 @@ async def move_user(
     if not user:
         raise HTTPException(404, "User not found")
 
-    if body.team_id is not None:
-        members_result = await db.execute(
-            select(func.count(User.id)).where(User.team_id == body.team_id)
-        )
-        count = members_result.scalar()
-        if count >= 2 and user.team_id != body.team_id:
-            raise HTTPException(400, "Target team is full")
-
     user.team_id = body.team_id
     return {"user_id": user.id, "team_id": body.team_id}
