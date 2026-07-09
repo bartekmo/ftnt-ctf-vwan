@@ -96,10 +96,10 @@ async def load_from_app_config() -> dict[str, str]:
     try:
         results = await asyncio.wait_for(
             loop.run_in_executor(_executor, _load_sync, endpoint, client_id, APPCONFIG_KEYS, False),
-            timeout=15.0,
+            timeout=60.0,
         )
     except asyncio.TimeoutError:
-        logger.error("App Configuration load timed out after 15s — continuing without it")
+        logger.error("App Configuration load timed out after 60s — continuing without it")
         return {}
     except Exception as e:
         logger.error("App Configuration load failed: %s", e)
@@ -129,10 +129,10 @@ async def refresh_from_app_config() -> dict[str, str]:
     try:
         results = await asyncio.wait_for(
             loop.run_in_executor(_executor, _load_sync, endpoint, client_id, REFRESHABLE_KEYS, True),
-            timeout=15.0,
+            timeout=60.0,
         )
     except asyncio.TimeoutError:
-        logger.warning("App Configuration refresh timed out after 15s")
+        logger.warning("App Configuration refresh timed out after 60s")
         return {}
     except Exception as e:
         logger.warning("App Configuration refresh failed: %s", e)
@@ -149,20 +149,41 @@ async def refresh_from_app_config() -> dict[str, str]:
     return results
 
 
+REFRESH_RETRY_SECONDS = 30   # retry delay after a failed refresh
+
 async def refresh_loop() -> None:
     """
     Background task: periodically re-fetch REFRESHABLE_KEYS from App
     Configuration so runtime config changes (FMG_IP, VWAN_NAME, etc.)
     are picked up without restarting the container.
+
+    On failure (timeout, auth error) retries after REFRESH_RETRY_SECONDS
+    rather than waiting the full REFRESH_INTERVAL_SECONDS — this ensures
+    a transient managed-identity delay at startup self-heals quickly.
     """
-    logger.info("App Configuration refresh loop started (interval=%ds, keys=%s)",
-                REFRESH_INTERVAL_SECONDS, REFRESHABLE_KEYS)
+    logger.warning("App Configuration refresh loop started (interval=%ds, retry=%ds, keys=%s)",
+                   REFRESH_INTERVAL_SECONDS, REFRESH_RETRY_SECONDS, REFRESHABLE_KEYS)
+    # First iteration: run immediately so values load even if startup timed out
+    next_sleep = 0
     while True:
         try:
-            await asyncio.sleep(REFRESH_INTERVAL_SECONDS)
-            await refresh_from_app_config()
+            await asyncio.sleep(next_sleep)
+            results = await refresh_from_app_config()
+            # If any keys are still missing, retry sooner
+            missing = [k for k, v in results.items() if v == "missing"]
+            loaded  = [k for k, v in results.items() if v in ("loaded", "changed")]
+            if loaded:
+                logger.warning("App Configuration refresh: loaded/updated %s", loaded)
+            if missing:
+                logger.warning("App Configuration refresh: still missing %s — retrying in %ds",
+                               missing, REFRESH_RETRY_SECONDS)
+                next_sleep = REFRESH_RETRY_SECONDS
+            else:
+                next_sleep = REFRESH_INTERVAL_SECONDS
         except asyncio.CancelledError:
             logger.info("App Configuration refresh loop stopped")
             raise
         except Exception as e:
-            logger.warning("App Configuration refresh loop error: %s", e)
+            logger.warning("App Configuration refresh loop error: %s — retrying in %ds",
+                           e, REFRESH_RETRY_SECONDS)
+            next_sleep = REFRESH_RETRY_SECONDS
