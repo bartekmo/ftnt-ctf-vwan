@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Play, Pause, Square, RotateCcw, Users, BookOpen, Shuffle, Key, AlertTriangle, UserCheck } from 'lucide-react'
 import { scoreboardApi, usersApi, teamsApi, type CTFEvent, type Team, type TapPreview, type TapResult } from '@/utils/api'
 import type { User } from '@/utils/api'
@@ -79,20 +80,26 @@ export default function TrainerPage() {
     await teamsApi.moveUser(userId, teamId); await refresh()
   }
 
-  const changeEnvId = async (team: Team) => {
-    const raw = prompt(`New environment index for team "${team.name}" (e.g. 03):\nCurrent: ${team.env_id ?? 'unassigned'}`)
-    if (!raw) return
-    const envId = raw.trim().padStart(2, '0')
+  const [moveHub, setMoveHub] = useState<{ team: Team; envId: string; resetScores: boolean } | null>(null)
+  const moveHubInputRef = useRef<HTMLInputElement>(null)
+
+  const openMoveHub = (team: Team) => {
+    setMoveHub({ team, envId: team.env_id ?? '', resetScores: true })
+    setTimeout(() => moveHubInputRef.current?.focus(), 50)
+  }
+
+  const confirmMoveHub = async () => {
+    if (!moveHub) return
+    const envId = moveHub.envId.trim().padStart(2, '0')
     if (!/^\d{2}$/.test(envId)) { setMsg('Invalid index — must be 2 digits'); return }
-    if (!confirm(`Change "${team.name}" from hub${team.env_id ?? '??'} to hub${envId}?`)) return
-    const resetSolves = confirm(`Reset all solves, hints and warnings for "${team.name}"?\n(Recommended when changing environment)`)
     try {
-      await teamsApi.setEnvId(team.id, envId)
-      if (resetSolves) await teamsApi.resetSolves(team.id)
-      setMsg(`Team "${team.name}" → hub${envId}${resetSolves ? ' (solves reset)' : ''}`)
+      await teamsApi.setEnvId(moveHub.team.id, envId)
+      if (moveHub.resetScores) await teamsApi.resetSolves(moveHub.team.id)
+      setMsg(`Team "${moveHub.team.name}" → hub${envId}${moveHub.resetScores ? ' (scores reset)' : ''}`)
+      setMoveHub(null)
       await refresh()
     } catch (e: any) {
-      setMsg(e?.response?.data?.detail ?? 'Failed to change env_id')
+      setMsg(e?.response?.data?.detail ?? 'Failed to change hub')
     }
   }
 
@@ -205,10 +212,10 @@ export default function TrainerPage() {
                           <>
                             <span style={{ color: 'var(--color-text-dim)' }}>hub:</span>
                             <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-teal)' }}>{team.hub_name}</span>
-                            <button onClick={() => changeEnvId(team)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-dim)', fontSize: '0.7rem', padding: '0 0.2rem' }}>✎</button>
+                            <button onClick={() => openMoveHub(team)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-dim)', fontSize: '0.7rem', padding: '0 0.2rem' }}>✎</button>
                           </>
                         ) : (
-                          <button onClick={() => changeEnvId(team)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-warning)', fontSize: '0.75rem' }}>assign hub…</button>
+                          <button onClick={() => openMoveHub(team)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-warning)', fontSize: '0.75rem' }}>assign hub…</button>
                         )}
                       </div>
                     </div>
@@ -289,6 +296,48 @@ export default function TrainerPage() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Move Hub modal */}
+      {moveHub && createPortal(
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}
+             onClick={e => { if (e.target === e.currentTarget) setMoveHub(null) }}>
+          <div className="card" style={{ width: 360, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <h3 style={{ margin: 0 }}>Move to different hub</h3>
+            <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
+              Team: <strong>{moveHub.team.name}</strong><br />
+              Current hub: <code style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-teal)' }}>{moveHub.team.hub_name ?? 'unassigned'}</code>
+            </p>
+            <div>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-text-muted)', display: 'block', marginBottom: '0.4rem' }}>
+                New hub index (e.g. 03)
+              </label>
+              <input
+                ref={moveHubInputRef}
+                className="form-input"
+                value={moveHub.envId}
+                onChange={e => setMoveHub(m => m ? { ...m, envId: e.target.value } : m)}
+                onKeyDown={e => { if (e.key === 'Enter') confirmMoveHub(); if (e.key === 'Escape') setMoveHub(null) }}
+                placeholder="01"
+                maxLength={2}
+                style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', width: '100%' }}
+              />
+            </div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+              <input
+                type="checkbox"
+                checked={moveHub.resetScores}
+                onChange={e => setMoveHub(m => m ? { ...m, resetScores: e.target.checked } : m)}
+              />
+              Reset scores, hints and warnings for this team
+            </label>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button className="btn btn-primary" onClick={confirmMoveHub} style={{ flex: 1, justifyContent: 'center' }}>Confirm</button>
+              <button className="btn btn-ghost" onClick={() => setMoveHub(null)} style={{ flex: 1, justifyContent: 'center' }}>Cancel</button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   )
