@@ -94,21 +94,24 @@ async def seed_trainer(
 
 @router.post("/admin/reset-db", status_code=200)
 async def reset_database(
-    db: AsyncSession = Depends(get_db),
     _trainer: User = Depends(get_current_trainer),
 ):
-    """Wipe all event data and recreate a clean state. Trainer only.
+    """Wipe all event data. Trainer only.
 
-    Uses TRUNCATE ... RESTART IDENTITY CASCADE instead of drop_all/create_all
-    to avoid schema lock contention and Azure Container Apps' 60s ingress
-    timeout. All tables are truncated in a single statement; sequences are
-    reset so IDs start from 1 again.
+    Disposes the connection pool first to close all idle connections, then
+    truncates all tables in a single statement. This avoids lock-wait
+    timeouts caused by other requests/background tasks holding open
+    transactions against the same tables.
     """
     from app.db.session import engine, Base
     from app.models import models  # noqa — ensure all models are loaded
     from sqlalchemy import text
 
-    # Collect all table names from the ORM metadata
+    # Close all idle pooled connections so TRUNCATE doesn't wait on them.
+    # Active connections (this request's own session) are already excluded
+    # since we're not injecting `db` here.
+    await engine.dispose()
+
     table_names = ", ".join(
         f'"{t.name}"' for t in reversed(Base.metadata.sorted_tables)
     )
