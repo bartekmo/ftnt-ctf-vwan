@@ -166,6 +166,12 @@ async def record_solve(
     if not team:
         raise HTTPException(404, "Team not found")
 
+    # Team 00 is the trainer's sandbox — silently ignore all solves so they
+    # never appear on the scoreboard and never affect scoring for other teams.
+    if team.env_id == 0:
+        from fastapi.responses import Response
+        return Response(status_code=204)
+
     solve = ChallengeSolve(
         challenge_slug  = body.challenge_slug,
         challenge_title = body.challenge_title,

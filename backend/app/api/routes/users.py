@@ -76,20 +76,41 @@ async def seed_trainer(
     email: str,
     db: AsyncSession = Depends(get_db),
 ):
-    """One-time use: create the first trainer account. Disabled once a trainer exists."""
+    """One-time use: create the first trainer account. Disabled once a trainer exists.
+
+    Also ensures a team with env_id=0 ('hub00') exists, and assigns the
+    trainer to it. Team 00 is the trainer's sandbox — solves by this team
+    are silently ignored by the prober so they never appear on the scoreboard
+    and never influence points awarded to other teams.
+    """
+    import secrets
+    from app.models.models import Team
+
     existing_trainer = await db.execute(select(User).where(User.role == UserRole.trainer))
     if existing_trainer.scalar_one_or_none():
         raise HTTPException(403, "Trainer already exists")
+
+    # Ensure team 00 exists
+    existing_team = (await db.execute(select(Team).where(Team.env_id == 0))).scalar_one_or_none()
+    if not existing_team:
+        existing_team = Team(
+            name="hub00",
+            join_code=secrets.token_hex(4).upper(),
+            env_id=0,
+        )
+        db.add(existing_team)
+        await db.flush()
 
     user = User(
         username=username,
         email=email,
         hashed_password=hash_password(password),
         role=UserRole.trainer,
+        team_id=existing_team.id,
     )
     db.add(user)
     await db.flush()
-    return {"created": user.id}
+    return {"created": user.id, "team_id": existing_team.id}
 
 
 @router.post("/admin/reset-db", status_code=200)

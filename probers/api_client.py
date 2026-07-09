@@ -77,6 +77,9 @@ async def record_solve(
             # Already recorded (race condition between runner ticks) — not an error
             logger.debug("Solve already recorded for team %d", team_id)
             return {}
+        if resp.status_code == 204:
+            # Team 00 (trainer sandbox) — backend silently ignores the solve
+            return {}
         resp.raise_for_status()
         return resp.json()
 
