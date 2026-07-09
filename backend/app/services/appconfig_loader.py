@@ -62,9 +62,21 @@ def _load_sync(
     """
     from azure.appconfiguration import AzureAppConfigurationClient
     from azure.identity import ManagedIdentityCredential, DefaultAzureCredential
+    from azure.core.pipeline.transport import RequestsTransport
 
-    credential = ManagedIdentityCredential(client_id=client_id) if client_id else DefaultAzureCredential()
-    client = AzureAppConfigurationClient(endpoint, credential)
+    # ACA exposes managed identity via IDENTITY_ENDPOINT/IDENTITY_HEADER env
+    # vars; ManagedIdentityCredential picks these up automatically.
+    # connection_timeout guards against a hung IMDS/token-broker call —
+    # without it the SDK blocks indefinitely inside get_configuration_setting().
+    transport = RequestsTransport(connection_timeout=10, read_timeout=30)
+    if client_id:
+        credential = ManagedIdentityCredential(
+            client_id=client_id,
+            connection_timeout=10,
+        )
+    else:
+        credential = DefaultAzureCredential(connection_timeout=10)
+    client = AzureAppConfigurationClient(endpoint, credential, transport=transport)
 
     results: dict[str, str] = {}
     for key in keys:
