@@ -89,38 +89,49 @@ def _load_sync(
     finally:
         _token_executor.shutdown(wait=False)
 
-    # Fetch keys directly via REST — bypasses the SDK client which hangs
-    # on the first request despite the token working fine.
+    # Fetch all keys in ONE request using the list endpoint — avoids
+    # per-key 429 rate limiting on the free tier (1000 req/day quota).
+    # Single request returns all KV pairs; we filter to our key list.
     import requests
     headers = {
         "Authorization": f"Bearer {token.token}",
-        "Accept": "application/vnd.microsoft.appconfig.kv+json",
+        "Accept": "application/vnd.microsoft.appconfig.kvset+json",
     }
 
-    results: dict[str, str] = {}
-    for key in keys:
-        if not force and os.environ.get(key):
-            results[key] = "skipped"
-            continue
-        try:
-            url = f"{endpoint}/kv/{key}?api-version=2023-10-01"
-            resp = requests.get(url, headers=headers, timeout=10)
-            if resp.status_code == 200:
-                value = resp.json().get("value")
-                if value is not None:
-                    changed = os.environ.get(key) != value
-                    os.environ[key] = value
-                    results[key] = "changed" if (force and changed) else "loaded"
-                else:
-                    results[key] = "missing"
-            elif resp.status_code == 404:
-                results[key] = "missing"
+    # Build a key filter: "KEY1,KEY2,..." using the fields param
+    keys_to_fetch = [k for k in keys if force or not os.environ.get(k)]
+    keys_to_skip  = [k for k in keys if not force and os.environ.get(k)]
+
+    results: dict[str, str] = {k: "skipped" for k in keys_to_skip}
+
+    if not keys_to_fetch:
+        return results
+
+    try:
+        # List endpoint with key filter — counts as 1 request regardless of
+        # how many keys are returned.
+        key_filter = ",".join(keys_to_fetch)
+        url = f"{endpoint}/kv?key={key_filter}&api-version=2023-10-01"
+        resp = requests.get(url, headers=headers, timeout=10)
+        if resp.status_code != 200:
+            logger.error("App Configuration: list returned HTTP %s: %s",
+                         resp.status_code, resp.text[:200])
+            return {**results, **{k: "missing" for k in keys_to_fetch}}
+
+        fetched = {item["key"]: item["value"] for item in resp.json().get("items", [])}
+        for key in keys_to_fetch:
+            value = fetched.get(key)
+            if value is not None:
+                changed = os.environ.get(key) != value
+                os.environ[key] = value
+                results[key] = "changed" if (force and changed) else "loaded"
             else:
-                logger.warning("App Configuration: key %s returned HTTP %s", key, resp.status_code)
                 results[key] = "missing"
-        except Exception as e:
-            logger.warning("App Configuration: failed to fetch key %s: %s", key, e)
-            results[key] = "missing"
+
+    except Exception as e:
+        logger.error("App Configuration: list request failed: %s", e)
+        return {**results, **{k: "missing" for k in keys_to_fetch}}
+
     return results
 
 
