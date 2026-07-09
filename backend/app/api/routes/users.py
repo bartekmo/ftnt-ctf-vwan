@@ -97,13 +97,28 @@ async def reset_database(
     db: AsyncSession = Depends(get_db),
     _trainer: User = Depends(get_current_trainer),
 ):
-    """Drop and recreate all tables. Wipes all data. Trainer only."""
+    """Wipe all event data and recreate a clean state. Trainer only.
+
+    Uses TRUNCATE ... RESTART IDENTITY CASCADE instead of drop_all/create_all
+    to avoid schema lock contention and Azure Container Apps' 60s ingress
+    timeout. All tables are truncated in a single statement; sequences are
+    reset so IDs start from 1 again.
+    """
     from app.db.session import engine, Base
     from app.models import models  # noqa — ensure all models are loaded
+    from sqlalchemy import text
+
+    # Collect all table names from the ORM metadata
+    table_names = ", ".join(
+        f'"{t.name}"' for t in reversed(Base.metadata.sorted_tables)
+    )
+
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-        await conn.run_sync(Base.metadata.create_all)
-    return {"reset": True, "message": "Database wiped and schema recreated."}
+        await conn.execute(
+            text(f"TRUNCATE TABLE {table_names} RESTART IDENTITY CASCADE")
+        )
+
+    return {"reset": True, "message": "All tables truncated, sequences reset."}
 
 
 # ── TAP endpoints ──────────────────────────────────────────────────────────
