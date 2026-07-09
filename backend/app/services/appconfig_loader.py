@@ -60,7 +60,6 @@ def _load_sync(
     If force=True (periodic refresh): always fetch from App Configuration
     and overwrite os.environ, used for REFRESHABLE_KEYS only.
     """
-    from azure.appconfiguration import AzureAppConfigurationClient
     from azure.identity import ManagedIdentityCredential, DefaultAzureCredential
     from azure.core.credentials import AccessToken
 
@@ -90,7 +89,13 @@ def _load_sync(
     finally:
         _token_executor.shutdown(wait=False)
 
-    client = AzureAppConfigurationClient(endpoint, credential)
+    # Fetch keys directly via REST — bypasses the SDK client which hangs
+    # on the first request despite the token working fine.
+    import requests
+    headers = {
+        "Authorization": f"Bearer {token.token}",
+        "Accept": "application/vnd.microsoft.appconfig.kv+json",
+    }
 
     results: dict[str, str] = {}
     for key in keys:
@@ -98,12 +103,20 @@ def _load_sync(
             results[key] = "skipped"
             continue
         try:
-            setting = client.get_configuration_setting(key=key)
-            if setting.value is not None:
-                changed = os.environ.get(key) != setting.value
-                os.environ[key] = setting.value
-                results[key] = "changed" if (force and changed) else "loaded"
+            url = f"{endpoint}/kv/{key}?api-version=2023-10-01"
+            resp = requests.get(url, headers=headers, timeout=10)
+            if resp.status_code == 200:
+                value = resp.json().get("value")
+                if value is not None:
+                    changed = os.environ.get(key) != value
+                    os.environ[key] = value
+                    results[key] = "changed" if (force and changed) else "loaded"
+                else:
+                    results[key] = "missing"
+            elif resp.status_code == 404:
+                results[key] = "missing"
             else:
+                logger.warning("App Configuration: key %s returned HTTP %s", key, resp.status_code)
                 results[key] = "missing"
         except Exception as e:
             logger.warning("App Configuration: failed to fetch key %s: %s", key, e)
