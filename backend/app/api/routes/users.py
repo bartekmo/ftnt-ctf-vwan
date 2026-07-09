@@ -94,34 +94,21 @@ async def seed_trainer(
 
 @router.post("/admin/reset-db", status_code=200)
 async def reset_database(
+    db: AsyncSession = Depends(get_db),
     _trainer: User = Depends(get_current_trainer),
 ):
-    """Wipe all event data. Trainer only.
-
-    Disposes the connection pool first to close all idle connections, then
-    truncates all tables in a single statement. This avoids lock-wait
-    timeouts caused by other requests/background tasks holding open
-    transactions against the same tables.
-    """
-    from app.db.session import engine, Base
-    from app.models import models  # noqa — ensure all models are loaded
-    from sqlalchemy import text
-
-    # Close all idle pooled connections so TRUNCATE doesn't wait on them.
-    # Active connections (this request's own session) are already excluded
-    # since we're not injecting `db` here.
-    await engine.dispose()
-
-    table_names = ", ".join(
-        f'"{t.name}"' for t in reversed(Base.metadata.sorted_tables)
+    """Delete all data from all tables. Trainer only."""
+    from app.models.models import (
+        ChallengeSolve, HintUse, ProberWarning, EnvTap, Team, User as UserModel, CTFEvent
     )
-
-    async with engine.begin() as conn:
-        await conn.execute(
-            text(f"TRUNCATE TABLE {table_names} RESTART IDENTITY CASCADE")
-        )
-
-    return {"reset": True, "message": "All tables truncated, sequences reset."}
+    await db.execute(ChallengeSolve.__table__.delete())
+    await db.execute(HintUse.__table__.delete())
+    await db.execute(ProberWarning.__table__.delete())
+    await db.execute(EnvTap.__table__.delete())
+    await db.execute(UserModel.__table__.delete())
+    await db.execute(Team.__table__.delete())
+    await db.execute(CTFEvent.__table__.delete())
+    return {"reset": True, "message": "All data deleted."}
 
 
 # ── TAP endpoints ──────────────────────────────────────────────────────────
