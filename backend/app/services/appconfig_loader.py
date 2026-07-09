@@ -62,12 +62,34 @@ def _load_sync(
     """
     from azure.appconfiguration import AzureAppConfigurationClient
     from azure.identity import ManagedIdentityCredential, DefaultAzureCredential
+    from azure.core.credentials import AccessToken
 
     # ACA exposes managed identity via IDENTITY_ENDPOINT/IDENTITY_HEADER —
     # ManagedIdentityCredential picks these up automatically.
-    # No extra kwargs: proven to work in 0.1s from the container; adding
-    # connection_timeout or custom transport breaks it.
     credential = ManagedIdentityCredential(client_id=client_id) if client_id else DefaultAzureCredential()
+
+    # Pre-warm the token cache — this is the only call that hits the
+    # network for auth; subsequent get_configuration_setting calls reuse
+    # the cached token and complete in ~0.1s each. Wrap in a separate
+    # thread with a hard 30s timeout so a hung token acquisition doesn't
+    # block the entire startup sequence.
+    import time, concurrent.futures
+    _token_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+    try:
+        future = _token_executor.submit(credential.get_token, "https://azconfig.io/.default")
+        token: AccessToken = future.result(timeout=30)
+        logger.warning("App Configuration: token acquired (expires %s)",
+                       time.strftime("%H:%M:%S", time.localtime(token.expires_on)))
+    except concurrent.futures.TimeoutError:
+        logger.error("App Configuration: token acquisition timed out after 30s")
+        _token_executor.shutdown(wait=False)
+        return {k: "missing" for k in keys}
+    except Exception as e:
+        logger.error("App Configuration: token acquisition failed: %s", e)
+        return {k: "missing" for k in keys}
+    finally:
+        _token_executor.shutdown(wait=False)
+
     client = AzureAppConfigurationClient(endpoint, credential)
 
     results: dict[str, str] = {}
@@ -83,7 +105,8 @@ def _load_sync(
                 results[key] = "changed" if (force and changed) else "loaded"
             else:
                 results[key] = "missing"
-        except Exception:
+        except Exception as e:
+            logger.warning("App Configuration: failed to fetch key %s: %s", key, e)
             results[key] = "missing"
     return results
 
