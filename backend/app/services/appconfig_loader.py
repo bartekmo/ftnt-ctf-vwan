@@ -106,11 +106,9 @@ async def load_from_app_config() -> dict[str, str]:
         return {}
 
     loaded  = [k for k, v in results.items() if v == "loaded"]
+    skipped = [k for k, v in results.items() if v == "skipped"]
     missing = [k for k, v in results.items() if v == "missing"]
-    if loaded:
-        logger.info("App Configuration: loaded %s", loaded)
-    if missing:
-        logger.warning("App Configuration: not found %s", missing)
+    logger.warning("App Configuration: loaded=%s skipped=%s missing=%s", loaded, skipped, missing)
 
     return results
 

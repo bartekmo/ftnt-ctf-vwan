@@ -34,16 +34,16 @@ async def lifespan(app: FastAPI):
     azure_settings = _cfg.azure_settings
 
     # ── Step 3: log resolved config for visibility ────────────────────────
-    logger.info("=== Azure settings ===")
-    logger.info("  AZURE_SUBSCRIPTION_ID : %s", azure_settings.AZURE_SUBSCRIPTION_ID or "*** NOT SET ***")
-    logger.info("  VWAN_NAME             : %s", azure_settings.VWAN_NAME or "*** NOT SET ***")
-    logger.info("  RG_PREFIX             : %s", azure_settings.RG_PREFIX)
-    logger.info("  RG_SUFFIX             : %s", repr(azure_settings.RG_SUFFIX))
-    logger.info("  RG_BRANCHES           : %s", azure_settings.RG_BRANCHES or "*** NOT SET ***")
-    logger.info("  FMG_IP                : %s", azure_settings.FMG_IP or "*** NOT SET ***")
-    logger.info("  FMG_SERIAL            : %s", azure_settings.FMG_SERIAL or "*** NOT SET ***")
-    logger.info("  FLEX_TOKENS set       : %s", azure_settings.FLEX_TOKENS != '{"hubs": []}')
-    logger.info("======================")
+    logger.warning("=== Azure settings ===")
+    logger.warning("  AZURE_SUBSCRIPTION_ID : %s", azure_settings.AZURE_SUBSCRIPTION_ID or "*** NOT SET ***")
+    logger.warning("  VWAN_NAME             : %s", azure_settings.VWAN_NAME or "*** NOT SET ***")
+    logger.warning("  RG_PREFIX             : %s", azure_settings.RG_PREFIX)
+    logger.warning("  RG_SUFFIX             : %s", repr(azure_settings.RG_SUFFIX))
+    logger.warning("  RG_BRANCHES           : %s", azure_settings.RG_BRANCHES or "*** NOT SET ***")
+    logger.warning("  FMG_IP                : %s", azure_settings.FMG_IP or "*** NOT SET ***")
+    logger.warning("  FMG_SERIAL            : %s", azure_settings.FMG_SERIAL or "*** NOT SET ***")
+    logger.warning("  FLEX_TOKENS set       : %s", azure_settings.FLEX_TOKENS != '{"hubs": []}')
+    logger.warning("======================")
 
     # ── Step 4: create DB tables ──────────────────────────────────────────
     async with engine.begin() as conn:
