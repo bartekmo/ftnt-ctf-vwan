@@ -39,6 +39,16 @@ Repeat for the second appliance.
 
 ![](lic-ssh.png)
 
+## FortiFlex errors
+
+If applying FortiFlex token fails with an error execute the following command in FortiGate cli:
+
+```
+exe central-mgmt register-device-by-ip 20.229.58.254 1tgpiqc57hpmsn735f4rc3xcct7fhi1w
+```
+
+**and call the trainer** (we need to do one manual step in this case).
+
 ## Verification
 
 Once both NVAs are licensed they will connect to FortiManager. Lab automation will authorize them and move to your ADOM. Please verify if your NVAs show up in your FortiManager ADOM.
