@@ -245,9 +245,18 @@ export const progressApi = {
   progress: () => api.get<ProgressTeam[]>('/progress'),
 }
 
+export interface HubStatusEntry {
+  index:              string
+  rg_name:            string
+  managed_app:        string | null
+  provisioning_state: string | null
+  routing_intent:     string | null
+}
+
 export const infraApi = {
   listHubs: () => api.get<{ hubs: HubDetailOut[] }>('/infra/hubs'),
   fmg:     ()                  => api.get<FmgOut>('/infra/fmg'),
+  hubStatus: ()                => api.get<HubStatusEntry[]>('/infra/hub-status'),
   srv:     (hubName: string)   => api.get<SrvOut>(`/infra/hubs/${hubName}/srv`),
   hub:     (hubName: string)   => api.get<HubDetailOut>(`/infra/hubs/${hubName}`),
   pips:    (hubName: string)   => api.get<PipsOut>(`/infra/hubs/${hubName}/pips`),

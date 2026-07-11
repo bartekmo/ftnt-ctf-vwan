@@ -222,6 +222,95 @@ async def get_spoke(
     return SpokeOut(**result)
 
 
+
+class HubStatusEntry(BaseModel):
+    index:              str
+    rg_name:            str
+    managed_app:        Optional[str] = None
+    provisioning_state: Optional[str] = None
+    routing_intent:     Optional[str] = None
+
+
+@router.get("/hub-status", response_model=list[HubStatusEntry])
+async def hub_status(_: User = Depends(get_current_trainer)):
+    """List all student hubs showing managed app name, provisioning state,
+    and whether a routing intent exists. Mirrors the shell script that
+    checks az managedapp list + az network vhub routing-intent show."""
+    import asyncio, os, httpx
+    from azure.identity import ManagedIdentityCredential
+
+    az = _s()
+    sub = az.AZURE_SUBSCRIPTION_ID
+    prefix = az.RG_PREFIX
+    suffix = az.RG_SUFFIX
+    if not sub or not prefix:
+        raise HTTPException(503, "AZURE_SUBSCRIPTION_ID or RG_PREFIX not configured")
+
+    # Acquire ARM token once
+    client_id  = os.environ.get("AZURE_CLIENT_ID")
+    cred       = ManagedIdentityCredential(client_id=client_id) if client_id else ManagedIdentityCredential()
+    arm_token  = await asyncio.get_event_loop().run_in_executor(
+        None, lambda: cred.get_token("https://management.azure.com/.default").token
+    )
+    headers = {"Authorization": f"Bearer {arm_token}"}
+    base    = f"https://management.azure.com/subscriptions/{sub}"
+
+    # Fetch all managed apps in the subscription once
+    async with httpx.AsyncClient(timeout=30) as client:
+        r = await client.get(
+            f"{base}/providers/Microsoft.Solutions/applications?api-version=2021-07-01",
+            headers=headers,
+        )
+    all_apps: list[dict] = r.json().get("value", []) if r.status_code == 200 else []
+
+    # Build index from managed app resourceGroup -> app entry
+    app_by_rg: dict[str, dict] = {}
+    for app in all_apps:
+        rg = (app.get("resourceGroup") or "").lower()
+        app_by_rg[rg] = app
+
+    # Determine hub range from existing student RGs (00..99)
+    results: list[HubStatusEntry] = []
+
+    async def check_hub(idx: int) -> HubStatusEntry:
+        indx   = f"{idx:02d}"
+        rg     = f"{prefix}{indx}{suffix}"
+        app    = app_by_rg.get(rg.lower())
+
+        if not app:
+            return HubStatusEntry(index=indx, rg_name=rg)
+
+        app_name   = app.get("name") or ""
+        prov_state = app.get("properties", {}).get("provisioningState") or app.get("provisioningState") or ""
+
+        # Check routing intent on the vhub (same name as managed app)
+        intent_name = None
+        async with httpx.AsyncClient(timeout=10) as client:
+            ri = await client.get(
+                f"{base}/resourceGroups/{rg}/providers/Microsoft.Network"
+                f"/virtualHubs/{app_name}/routingIntent/hubRoutingIntent"
+                f"?api-version=2024-03-01",
+                headers=headers,
+            )
+        if ri.status_code == 200:
+            intent_name = ri.json().get("name")
+
+        return HubStatusEntry(
+            index=indx,
+            rg_name=rg,
+            managed_app=app_name,
+            provisioning_state=prov_state,
+            routing_intent=intent_name,
+        )
+
+    # Check hubs 00..30 concurrently
+    tasks = [check_hub(i) for i in range(31)]
+    rows  = await asyncio.gather(*tasks)
+
+    # Only return rows that have a managed app or are interesting
+    return [r for r in rows if r.managed_app]
+
+
 @router.get("/fmg", response_model=FmgOut)
 async def get_fmg(_: User = Depends(get_current_user)):
     """FortiManager serial and IP (shared across all teams)."""
