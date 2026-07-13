@@ -224,33 +224,36 @@ async def get_spoke(
 
 
 class HubStatusEntry(BaseModel):
-    index: str
-    rg:    str          # "vwanlab-student-01" or "NONE"
-    vhub:  str          # "hub01 (Succeeded)" or "NONE"
-    nva:   str          # "hub01-sdfw-abc123" or "NONE"
+    index:          str
+    rg:             str   # RG name or "NONE"
+    vhub:           str   # "hub01 (Succeeded)" or "NONE"
+    nva:            str   # NVA short name or "NONE"
+    routing_intent: str   # intent name or "NONE" or "N/A" (skipped)
 
 
 @router.get("/hub-status", response_model=list[HubStatusEntry])
 async def hub_status(_: User = Depends(get_current_trainer)):
     """
-    Build a table of all student hub indices from 00 to the highest
-    index found in either the student RG list or the vWAN hub list.
-    Each row shows RG existence, vhub provisioningState, and NVA name.
-    Two ARM calls total (list RGs + list vhubs) — no per-row requests.
+    Build a table of all student hub indices from 00 to the highest found.
+    For hubs that have an NVA, concurrently fetch routing intent.
+    Hubs with no hub entry or no NVA skip the routing intent call.
+
+    ARM calls:
+      - 2 parallel: list RGs + list vhubs
+      - N parallel: routing intent GET for each hub that has an NVA
     """
     import asyncio, os, re, httpx
     from azure.identity import ManagedIdentityCredential
 
     az = _s()
     sub    = az.AZURE_SUBSCRIPTION_ID
-    prefix = az.RG_PREFIX      # e.g. "vwanlab-student-"
+    prefix = az.RG_PREFIX
     suffix = az.RG_SUFFIX or ""
     vwan   = az.VWAN_NAME
 
     if not sub or not prefix:
         raise HTTPException(503, "AZURE_SUBSCRIPTION_ID or RG_PREFIX not configured")
 
-    # Acquire ARM token once
     client_id = os.environ.get("AZURE_CLIENT_ID")
     cred      = ManagedIdentityCredential(client_id=client_id) if client_id else ManagedIdentityCredential()
     arm_token = await asyncio.get_event_loop().run_in_executor(
@@ -259,7 +262,7 @@ async def hub_status(_: User = Depends(get_current_trainer)):
     headers = {"Authorization": f"Bearer {arm_token}"}
     base    = f"https://management.azure.com/subscriptions/{sub}"
 
-    # Fetch RG list and vhub list concurrently — 2 requests total
+    # ── Step 1: fetch RG list + vhub list in parallel (2 calls) ──────────
     async with httpx.AsyncClient(timeout=30) as http:
         rg_resp, hub_resp = await asyncio.gather(
             http.get(f"{base}/resourcegroups?api-version=2021-04-01", headers=headers),
@@ -269,56 +272,103 @@ async def hub_status(_: User = Depends(get_current_trainer)):
     all_rgs  = rg_resp.json().get("value", [])  if rg_resp.status_code  == 200 else []
     all_hubs = hub_resp.json().get("value", []) if hub_resp.status_code == 200 else []
 
-    # Build pattern to match student RGs: prefix + 2-digit index + suffix
-    # e.g. "vwanlab-student-01" or "vwanlab-student-01-eu"
     rg_pattern = re.compile(
         r"^" + re.escape(prefix) + r"(\d{2})" + re.escape(suffix) + r"$",
         re.IGNORECASE,
     )
 
-    # Map index -> RG name
     rg_by_idx: dict[str, str] = {}
     for rg in all_rgs:
         m = rg_pattern.match(rg.get("name", ""))
         if m:
             rg_by_idx[m.group(1)] = rg["name"]
 
-    # Map index -> hub dict (match hub name "hub{idx}" pattern)
     hub_by_idx: dict[str, dict] = {}
     for hub in all_hubs:
-        # Only hubs belonging to our vWAN
         if vwan and vwan not in (hub.get("properties", {}).get("virtualWan", {}).get("id", "")):
             continue
         m = re.match(r"^hub(\d{2})$", hub.get("name", ""), re.IGNORECASE)
         if m:
             hub_by_idx[m.group(1)] = hub
 
-    # Determine range: 00 to max index found in either source
     all_indices = set(rg_by_idx.keys()) | set(hub_by_idx.keys())
-    max_idx = max((int(i) for i in all_indices), default=0)
+    if not all_indices:
+        return []
+    max_idx = max(int(i) for i in all_indices)
 
+    # ── Step 2: routing intent — concurrent, only for hubs with NVAs ─────
+    async def get_routing_intent(http: httpx.AsyncClient, rg_name: str, hub_name: str) -> str:
+        """Return intent name, or 'NONE' if not present, or 'error' on failure."""
+        try:
+            r = await http.get(
+                f"{base}/resourceGroups/{rg_name}/providers/Microsoft.Network"
+                f"/virtualHubs/{hub_name}/routingIntent?api-version=2024-03-01",
+                headers=headers,
+            )
+            if r.status_code == 200:
+                items = r.json().get("value", [])
+                return items[0].get("name", "NONE") if items else "NONE"
+            return "NONE"
+        except Exception:
+            return "error"
+
+    # Collect which indices need a routing intent call
+    needs_intent: list[str] = []
+    for i in range(max_idx + 1):
+        indx = f"{i:02d}"
+        hub  = hub_by_idx.get(indx)
+        if hub:
+            nvas = hub.get("properties", {}).get("networkVirtualAppliances", [])
+            if nvas:
+                needs_intent.append(indx)
+
+    # Fire all routing intent calls concurrently
+    intent_by_idx: dict[str, str] = {}
+    if needs_intent:
+        async with httpx.AsyncClient(timeout=15) as http:
+            results = await asyncio.gather(*[
+                get_routing_intent(
+                    http,
+                    hub_by_idx[indx]["resourceGroup"] if hub_by_idx[indx].get("resourceGroup")
+                    else rg_by_idx.get(indx, f"{prefix}{indx}{suffix}"),
+                    hub_by_idx[indx]["name"],
+                )
+                for indx in needs_intent
+            ])
+        intent_by_idx = dict(zip(needs_intent, results))
+
+    # ── Step 3: assemble rows ─────────────────────────────────────────────
     rows: list[HubStatusEntry] = []
     for i in range(max_idx + 1):
         indx = f"{i:02d}"
 
-        rg_name = rg_by_idx.get(indx)
-        rg_cell = rg_name if rg_name else "NONE"
+        rg_name  = rg_by_idx.get(indx)
+        rg_cell  = rg_name if rg_name else "NONE"
 
         hub = hub_by_idx.get(indx)
         if hub:
-            prov  = hub.get("properties", {}).get("provisioningState", "Unknown")
+            prov      = hub.get("properties", {}).get("provisioningState", "Unknown")
             vhub_cell = f"{hub['name']} ({prov})"
-        else:
-            vhub_cell = "NONE"
-
-        nva_cell = "NONE"
-        if hub:
-            nvas = hub.get("properties", {}).get("networkVirtualAppliances", [])
+            nvas      = hub.get("properties", {}).get("networkVirtualAppliances", [])
             if nvas:
                 nva_id   = nvas[0].get("id", "")
                 nva_cell = nva_id.split("/")[-1] if nva_id else "NONE"
+                intent_cell = intent_by_idx.get(indx, "NONE")
+            else:
+                nva_cell    = "NONE"
+                intent_cell = "N/A"   # hub exists but no NVA — intent not applicable
+        else:
+            vhub_cell   = "NONE"
+            nva_cell    = "NONE"
+            intent_cell = "N/A"       # no hub — intent not applicable
 
-        rows.append(HubStatusEntry(index=indx, rg=rg_cell, vhub=vhub_cell, nva=nva_cell))
+        rows.append(HubStatusEntry(
+            index=indx,
+            rg=rg_cell,
+            vhub=vhub_cell,
+            nva=nva_cell,
+            routing_intent=intent_cell,
+        ))
 
     return rows
 

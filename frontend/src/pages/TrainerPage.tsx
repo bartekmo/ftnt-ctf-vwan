@@ -322,7 +322,7 @@ export default function TrainerPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
-                  {['#', 'Resource Group', 'Virtual Hub', 'NVA'].map(h => (
+                  {['#', 'Resource Group', 'Virtual Hub', 'NVA', 'Routing Intent'].map(h => (
                     <th key={h} style={{ padding: '0.25rem 0.75rem', textAlign: 'left', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -341,6 +341,13 @@ export default function TrainerPage() {
                       <td style={{ padding: '0.2rem 0.75rem', fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: rgMissing ? 'var(--color-text-dim)' : 'var(--color-text)' }}>{row.rg}</td>
                       <td style={{ padding: '0.2rem 0.75rem', fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: vhubMissing ? 'var(--color-text-dim)' : vhubColor }}>{row.vhub}</td>
                       <td style={{ padding: '0.2rem 0.75rem', fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: nvaMissing ? 'var(--color-text-dim)' : 'var(--color-text)' }}>{row.nva}</td>
+                      <td style={{ padding: '0.2rem 0.75rem', fontSize: '0.78rem' }}>
+                        {row.routing_intent === 'N/A'
+                          ? <span style={{ color: 'var(--color-text-dim)' }}>N/A</span>
+                          : row.routing_intent === 'NONE'
+                          ? <span style={{ color: 'var(--color-warning)', fontWeight: 600 }}>NONE</span>
+                          : <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-success)', fontWeight: 600 }}>{row.routing_intent}</span>}
+                      </td>
                     </tr>
                   )
                 })}

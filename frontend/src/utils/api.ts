@@ -246,10 +246,11 @@ export const progressApi = {
 }
 
 export interface HubStatusEntry {
-  index: string
-  rg:    string
-  vhub:  string
-  nva:   string
+  index:          string
+  rg:             string
+  vhub:           string
+  nva:            string
+  routing_intent: string
 }
 
 export const infraApi = {
