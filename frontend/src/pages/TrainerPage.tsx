@@ -317,38 +317,33 @@ export default function TrainerPage() {
           {hubStatus === null ? (
             <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>Click Refresh to load hub status from Azure.</p>
           ) : hubStatus.length === 0 ? (
-            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>No managed applications found in any student resource group.</p>
+            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>No hubs or student resource groups found.</p>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-                  {['Hub', 'Resource Group', 'Managed App', 'State', 'Routing Intent'].map(h => (
-                    <th key={h} style={{ padding: '0.3rem 0.6rem', textAlign: 'left', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>{h}</th>
+                <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
+                  {['#', 'Resource Group', 'Virtual Hub', 'NVA'].map(h => (
+                    <th key={h} style={{ padding: '0.25rem 0.75rem', textAlign: 'left', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {hubStatus.map(row => (
-                  <tr key={row.index} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                    <td style={{ padding: '0.25rem 0.6rem', fontFamily: 'var(--font-mono)', color: 'var(--color-teal)', fontWeight: 700 }}>hub{row.index}</td>
-                    <td style={{ padding: '0.25rem 0.6rem', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{row.rg_name}</td>
-                    <td style={{ padding: '0.25rem 0.6rem', fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>{row.managed_app ?? '—'}</td>
-                    <td style={{ padding: '0.25rem 0.6rem' }}>
-                      {row.provisioning_state ? (
-                        <span style={{
-                          fontSize: '0.7rem', fontWeight: 700, padding: '0.1rem 0.4rem', borderRadius: 'var(--radius-sm)',
-                          background: row.provisioning_state === 'Succeeded' ? 'rgba(16,185,129,0.15)' : row.provisioning_state === 'Failed' ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)',
-                          color: row.provisioning_state === 'Succeeded' ? 'var(--color-success)' : row.provisioning_state === 'Failed' ? 'var(--color-red)' : 'var(--color-warning)',
-                        }}>{row.provisioning_state}</span>
-                      ) : '—'}
-                    </td>
-                    <td style={{ padding: '0.25rem 0.6rem' }}>
-                      {row.routing_intent
-                        ? <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.1rem 0.4rem', borderRadius: 'var(--radius-sm)', background: 'rgba(16,185,129,0.15)', color: 'var(--color-success)' }}>{row.routing_intent}</span>
-                        : <span style={{ fontSize: '0.7rem', color: 'var(--color-text-dim)' }}>none</span>}
-                    </td>
-                  </tr>
-                ))}
+                {hubStatus.map(row => {
+                  const vhubMissing = row.vhub === 'NONE'
+                  const rgMissing   = row.rg   === 'NONE'
+                  const nvaMissing  = row.nva  === 'NONE'
+                  // Colour-code vhub state from inside parentheses e.g. "hub01 (Failed)"
+                  const vhubState   = row.vhub.match(/\((\w+)\)/)?.[1] ?? ''
+                  const vhubColor   = vhubState === 'Succeeded' ? 'var(--color-success)' : vhubState === 'Failed' ? 'var(--color-red)' : vhubState ? 'var(--color-warning)' : 'var(--color-text-dim)'
+                  return (
+                    <tr key={row.index} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                      <td style={{ padding: '0.2rem 0.75rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--color-teal)', whiteSpace: 'nowrap' }}>{row.index}</td>
+                      <td style={{ padding: '0.2rem 0.75rem', fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: rgMissing ? 'var(--color-text-dim)' : 'var(--color-text)' }}>{row.rg}</td>
+                      <td style={{ padding: '0.2rem 0.75rem', fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: vhubMissing ? 'var(--color-text-dim)' : vhubColor }}>{row.vhub}</td>
+                      <td style={{ padding: '0.2rem 0.75rem', fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: nvaMissing ? 'var(--color-text-dim)' : 'var(--color-text)' }}>{row.nva}</td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           )}
